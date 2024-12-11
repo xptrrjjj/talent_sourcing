@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wand2, Loader, AlertCircle } from 'lucide-react';
+import { Wand2, Loader } from 'lucide-react';
 import type { SkillCategory } from '../../types';
 import { UseFormRegister } from 'react-hook-form';
 import type { JobFormData } from '../../types';
@@ -12,7 +12,6 @@ interface Props {
   onAddSkill: (skill: string) => void;
   onRemoveSkill: (skill: string) => void;
   register: UseFormRegister<JobFormData>;
-  error?: string | null;
 }
 
 export function SkillsSection({
@@ -22,8 +21,7 @@ export function SkillsSection({
   onSuggestSkills,
   onAddSkill,
   onRemoveSkill,
-  register,
-  error
+  register
 }: Props) {
   return (
     <div className="md:col-span-2">
@@ -59,13 +57,6 @@ export function SkillsSection({
           rows={3}
           placeholder="Enter key skills, separated by commas"
         />
-
-        {error && (
-          <div className="flex items-start p-4 rounded-md bg-red-50 text-red-700">
-            <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
 
         {currentSkills.length > 0 && (
           <div className="flex flex-wrap gap-2">

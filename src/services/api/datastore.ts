@@ -1,133 +1,68 @@
-import axios from 'axios';
+import { apiClient } from './client';
 import { APIError } from '../errors';
-import type { SavedPosition, Company } from '../../types';
+import type { DatastoreResponse, DatastoreRecord } from '../../types';
 
-const API_URL = 'http://44.211.135.244:8000';
-const APP_ID = 'talent_sourcing_platform';
-
-interface DatastoreResponse {
-  status: 'success' | 'error';
-  message: string;
-  data?: any[];
-}
-
-export async function createRecord(recordId: string, data: any): Promise<DatastoreResponse> {
+export async function createRecord(recordId: string, data: Record<string, any>): Promise<void> {
   try {
-    const response = await axios.post(`${API_URL}/api/datastore/create`, {
-      identifier: APP_ID,
+    console.log('Creating record:', { recordId, data });
+    const response = await apiClient.post<DatastoreResponse>('/api/datastore/create', {
+      identifier: 'talent_sourcing_platform',
       action: 'create',
       data: {
-        app_id: APP_ID,
+        app_id: 'talent_sourcing_platform',
         record_id: recordId,
-        type: data.type || 'unknown',
         ...data
       }
     });
+    console.log('Create record response:', response.data);
 
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new APIError(error.response.data.message || 'Failed to create record');
+    if (response.data.status === 'error') {
+      throw new APIError(response.data.message || 'Failed to create record');
     }
-    throw new APIError('Failed to connect to datastore');
+  } catch (error) {
+    console.error('Create record error:', error);
+    throw error;
   }
 }
 
-export async function updateRecord(recordId: string, data: any): Promise<DatastoreResponse> {
+export async function appendToRecord(recordId: string, data: Record<string, any>): Promise<void> {
   try {
-    const response = await axios.post(`${API_URL}/api/datastore/create`, {
-      identifier: APP_ID,
-      action: 'update',
+    console.log('Appending to record:', { recordId, data });
+    const response = await apiClient.post<DatastoreResponse>('/api/datastore/create', {
+      identifier: 'talent_sourcing_platform',
+      action: 'append',
       data: {
         record_id: recordId,
         ...data
       }
     });
+    console.log('Append record response:', response.data);
 
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new APIError(error.response.data.message || 'Failed to update record');
+    if (response.data.status === 'error') {
+      throw new APIError(response.data.message || 'Failed to append to record');
     }
-    throw new APIError('Failed to connect to datastore');
+  } catch (error) {
+    console.error('Append record error:', error);
+    throw error;
   }
 }
 
-export async function retrieveRecords(filters?: Record<string, any>): Promise<DatastoreResponse> {
+export async function retrieveRecords(filters?: Record<string, any>): Promise<DatastoreRecord[]> {
   try {
-    const response = await axios.post(`${API_URL}/api/datastore/retrieve`, {
-      identifier: APP_ID,
-      filters: {
-        app_id: APP_ID,
-        ...filters
-      }
+    console.log('Retrieving records with filters:', filters);
+    const response = await apiClient.post<DatastoreResponse>('/api/datastore/retrieve', {
+      identifier: 'talent_sourcing_platform',
+      filters: filters || {}
     });
+    console.log('Retrieved records:', response.data);
 
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new APIError(error.response.data.message || 'Failed to retrieve records');
+    if (response.data.status === 'error') {
+      throw new APIError(response.data.message || 'Failed to retrieve records');
     }
-    throw new APIError('Failed to connect to datastore');
+
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Retrieve records error:', error);
+    throw error;
   }
-}
-
-export async function savePosition(position: SavedPosition): Promise<void> {
-  await createRecord(`position_${position.id}`, {
-    type: 'position',
-    ...position
-  });
-}
-
-export async function updatePosition(position: SavedPosition): Promise<void> {
-  await updateRecord(`position_${position.id}`, {
-    type: 'position',
-    ...position
-  });
-}
-
-export async function getPositions(search?: string): Promise<SavedPosition[]> {
-  const filters: Record<string, any> = { type: 'position' };
-  if (search) {
-    filters.search = search;
-  }
-  const response = await retrieveRecords(filters);
-  return (response.data || []).map((item: any) => ({
-    ...item,
-    id: item.record_id?.replace('position_', '') || item.id
-  }));
-}
-
-export async function saveCompany(company: Company): Promise<void> {
-  await createRecord(`company_${company.id}`, {
-    type: 'company',
-    ...company
-  });
-}
-
-export async function updateCompany(company: Company): Promise<void> {
-  await updateRecord(`company_${company.id}`, {
-    type: 'company',
-    ...company
-  });
-}
-
-export async function getCompanies(search?: string): Promise<Company[]> {
-  const filters: Record<string, any> = { type: 'company' };
-  if (search) {
-    filters.search = search;
-  }
-  const response = await retrieveRecords(filters);
-  return (response.data || []).map((item: any) => ({
-    ...item,
-    id: item.record_id?.replace('company_', '') || item.id
-  }));
-}
-
-export async function searchCompanies(query: string): Promise<Company[]> {
-  return getCompanies(query);
-}
-
-export async function searchPositions(query: string): Promise<SavedPosition[]> {
-  return getPositions(query);
 }

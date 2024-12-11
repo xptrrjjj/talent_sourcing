@@ -1,17 +1,24 @@
 import type { TalentAnalysis } from '../types';
 
 export function generateShareableUrl(analysis: TalentAnalysis, proposedRate: number) {
-  // Create a sanitized version of the analysis without offshore rates
+  // Create a sanitized version of the analysis without sensitive information
   const shareableData = {
-    ...analysis,
-    offshoreSalaryRange: undefined,
+    jobDescription: analysis.jobDescription,
+    talentPoolSize: analysis.talentPoolSize,
+    onshoreSalaryRange: analysis.onshoreSalaryRange,
     proposedRate: {
       annual: proposedRate,
       monthly: Math.round(proposedRate / 12)
     }
   };
 
-  const encoded = btoa(JSON.stringify(shareableData));
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/share/${encoded}`;
+  // Create a base64 encoded string of the data
+  const encoded = btoa(encodeURIComponent(JSON.stringify(shareableData)));
+  
+  // Generate a URL with the encoded data
+  const url = new URL(window.location.href);
+  url.pathname = '/share';
+  url.searchParams.set('data', encoded);
+  
+  return url.toString();
 }

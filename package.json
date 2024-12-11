@@ -10,10 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.2.1",
     "@headlessui/react": "^1.7.18",
     "axios": "^1.6.7",
     "clsx": "^2.1.0",
-    "lodash": "^4.17.21",
     "lucide-react": "^0.344.0",
     "nanoid": "^5.0.6",
     "openai": "^4.28.0",
@@ -28,7 +28,6 @@
     "@eslint/js": "^9.9.1",
     "@tailwindcss/forms": "^0.5.7",
     "@tailwindcss/typography": "^0.5.10",
-    "@types/lodash": "^4.14.202",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

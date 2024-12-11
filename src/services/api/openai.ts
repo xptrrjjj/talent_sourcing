@@ -1,33 +1,18 @@
 import OpenAI from 'openai';
 import { APIError } from '../errors';
 
-const responseCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-const OPENAI_API_KEY = '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'; // Replace with actual API key
-
-export function createOpenAIClient() {
-  if (!OPENAI_API_KEY) {
-    throw new APIError('OpenAI API key is missing');
-  }
-
-  return new OpenAI({
-    apiKey: OPENAI_API_KEY,
-    dangerouslyAllowBrowser: true
-  });
-}
-
-export async function createChatCompletion(prompt: string, cacheKey?: string) {
+export async function createOpenAICompletion(prompt: string) {
   try {
-    // Check cache if cacheKey is provided
-    if (cacheKey) {
-      const cached = responseCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        return cached.data;
-      }
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      throw new APIError('OpenAI API key is missing');
     }
 
-    const openai = createOpenAIClient();
+    const openai = new OpenAI({
+      apiKey,
+      dangerouslyAllowBrowser: true
+    });
     
     const completion = await openai.chat.completions.create({
       messages: [
@@ -49,26 +34,17 @@ export async function createChatCompletion(prompt: string, cacheKey?: string) {
       throw new APIError('Invalid response from OpenAI API');
     }
 
-    let responseData;
     try {
-      responseData = JSON.parse(completion.choices[0].message.content);
+      return JSON.parse(completion.choices[0].message.content);
     } catch (error) {
-      throw new APIError('Invalid JSON response from OpenAI API');
+      console.error('Failed to parse OpenAI response:', completion.choices[0].message.content);
+      throw new APIError('Invalid JSON response from OpenAI');
     }
-
-    // Cache the response if cacheKey is provided
-    if (cacheKey) {
-      responseCache.set(cacheKey, {
-        data: responseData,
-        timestamp: Date.now()
-      });
-    }
-
-    return responseData;
   } catch (error) {
-    if (error instanceof Error) {
-      throw new APIError(`OpenAI API Error: ${error.message}`);
+    console.error('OpenAI API Error:', error);
+    if (error instanceof APIError) {
+      throw error;
     }
-    throw new APIError('An unexpected error occurred while calling OpenAI API');
+    throw new APIError('Failed to get response from OpenAI');
   }
 }

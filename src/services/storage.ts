@@ -1,52 +1,135 @@
-import type { SavedPosition, Company } from '../types';
+import { SavedPosition, Company } from '../types';
+import { createRecord, appendToRecord, retrieveRecords } from './api/datastore';
 
-const POSITIONS_KEY = 'savedPositions';
-const COMPANIES_KEY = 'companies';
-
-export function getSavedPositions(): SavedPosition[] {
-  const saved = localStorage.getItem(POSITIONS_KEY);
-  return saved ? JSON.parse(saved) : [];
-}
-
-export function savePosition(position: SavedPosition): void {
-  const positions = getSavedPositions();
-  const index = positions.findIndex(p => p.id === position.id);
-  
-  if (index >= 0) {
-    positions[index] = position;
-  } else {
-    positions.push(position);
+// Position-related functions
+export async function getSavedPositions(): Promise<SavedPosition[]> {
+  try {
+    const records = await retrieveRecords({ type: 'position' });
+    return Array.isArray(records) ? records.map(record => ({
+      ...record.data,
+      id: record.record_id
+    })) : [];
+  } catch (error) {
+    console.error('Failed to fetch positions:', error);
+    return [];
   }
-  
-  localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
 }
 
-export function deletePosition(id: string): void {
-  const positions = getSavedPositions();
-  const filtered = positions.filter(p => p.id !== id);
-  localStorage.setItem(POSITIONS_KEY, JSON.stringify(filtered));
-}
-
-export function getCompanies(): Company[] {
-  const saved = localStorage.getItem(COMPANIES_KEY);
-  return saved ? JSON.parse(saved) : [];
-}
-
-export function saveCompany(company: Company): void {
-  const companies = getCompanies();
-  const index = companies.findIndex(c => c.id === company.id);
-  
-  if (index >= 0) {
-    companies[index] = company;
-  } else {
-    companies.push(company);
+export async function savePosition(position: SavedPosition): Promise<void> {
+  try {
+    await createRecord(position.id, {
+      type: 'position',
+      data: position
+    });
+  } catch (error) {
+    console.error('Failed to save position:', error);
+    throw error;
   }
-  
-  localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies));
 }
 
-export function deleteCompany(id: string): void {
-  const companies = getCompanies();
-  const filtered = companies.filter(c => c.id !== id);
-  localStorage.setItem(COMPANIES_KEY, JSON.stringify(filtered));
+export async function deletePosition(id: string): Promise<void> {
+  try {
+    await createRecord(id, {
+      type: 'position',
+      data: { deleted: true }
+    });
+  } catch (error) {
+    console.error('Failed to delete position:', error);
+    throw error;
+  }
+}
+
+export async function updatePositionStatus(id: string, status: 'draft' | 'active' | 'archived'): Promise<void> {
+  try {
+    await appendToRecord(id, {
+      type: 'position',
+      data: { status }
+    });
+  } catch (error) {
+    console.error('Failed to update position status:', error);
+    throw error;
+  }
+}
+
+// Company-related functions
+export async function getCompanies(): Promise<Company[]> {
+  try {
+    const records = await retrieveRecords({ type: 'company' });
+    return Array.isArray(records) ? records.map(record => ({
+      ...record.data,
+      id: record.record_id
+    })) : [];
+  } catch (error) {
+    console.error('Failed to fetch companies:', error);
+    return [];
+  }
+}
+
+export async function saveCompany(company: Company): Promise<void> {
+  try {
+    await createRecord(company.id, {
+      type: 'company',
+      data: company
+    });
+  } catch (error) {
+    console.error('Failed to save company:', error);
+    throw error;
+  }
+}
+
+export async function deleteCompany(id: string): Promise<void> {
+  try {
+    await createRecord(id, {
+      type: 'company',
+      data: { deleted: true }
+    });
+  } catch (error) {
+    console.error('Failed to delete company:', error);
+    throw error;
+  }
+}
+
+export async function updateCompanyDetails(id: string, updates: Partial<Company>): Promise<void> {
+  try {
+    await appendToRecord(id, {
+      type: 'company',
+      data: updates
+    });
+  } catch (error) {
+    console.error('Failed to update company details:', error);
+    throw error;
+  }
+}
+
+// Utility functions for data validation
+function validatePosition(position: SavedPosition): boolean {
+  return !!(
+    position.id &&
+    position.formData?.jobTitle &&
+    position.companyData?.companyName &&
+    position.userId &&
+    position.userName
+  );
+}
+
+function validateCompany(company: Company): boolean {
+  return !!(
+    company.id &&
+    company.name &&
+    company.contactName &&
+    company.onshoreLocation
+  );
+}
+
+// Error handling wrapper
+async function withErrorHandling<T>(
+  operation: () => Promise<T>,
+  errorMessage: string
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    console.error(`${errorMessage}:`, error);
+    throw error;
+  }
 }

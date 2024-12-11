@@ -32,7 +32,7 @@ export function ClientProposal({ analysis, proposedRate }: Props) {
           <p className="text-3xl font-bold text-green-600">
             ${analysis.onshoreSalaryRange.min.toLocaleString()}
           </p>
-          <p className="text-sm text-green-700 mt-1">Current {analysis.onshoreSalaryRange.max.toLocaleString()} Range</p>
+          <p className="text-sm text-green-700 mt-1">Current Market Range</p>
         </div>
 
         <div className="bg-purple-50 p-4 rounded-lg">
@@ -45,26 +45,36 @@ export function ClientProposal({ analysis, proposedRate }: Props) {
         </div>
       </div>
 
-      <div className="prose max-w-none">
-        <h3>Key Qualifications</h3>
-        <ul>
-          {analysis.jobDescription.requirements.map((req, index) => (
-            <li key={index}>{req}</li>
-          ))}
-        </ul>
+      <div className="space-y-6">
+        <section>
+          <h3 className="text-xl font-semibold text-gray-800 mb-3">Key Qualifications</h3>
+          <ul className="space-y-2">
+            {analysis.jobDescription.requirements.map((req, index) => (
+              <li key={index} className="flex items-start">
+                <span className="text-gray-400 mr-2">•</span>
+                <span className="text-gray-700">{req.replace(/<[^>]*>/g, '')}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-        <h3>Benefits</h3>
-        <ul>
-          {analysis.jobDescription.benefits.map((benefit, index) => (
-            <li key={index}>{benefit}</li>
-          ))}
-        </ul>
+        <section>
+          <h3 className="text-xl font-semibold text-gray-800 mb-3">Benefits</h3>
+          <ul className="space-y-2">
+            {analysis.jobDescription.benefits.map((benefit, index) => (
+              <li key={index} className="flex items-start">
+                <span className="text-gray-400 mr-2">•</span>
+                <span className="text-gray-700">{benefit.replace(/<[^>]*>/g, '')}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+        <div className="bg-gray-50 p-4 rounded-lg mt-6">
           <p className="text-gray-700">
             By partnering with us, you can access a rich talent pool of {analysis.talentPoolSize.toLocaleString()} qualified candidates
             while achieving significant cost optimization of up to {costSavings}% compared to current market rates
-            in {analysis.onshoreSalaryRange.min.toLocaleString()}.
+            in your region.
           </p>
         </div>
       </div>

@@ -10,37 +10,35 @@ import { EXPERIENCE_LEVELS, EDUCATION_LEVELS, EMPLOYMENT_TYPES } from './form/co
 interface Props {
   onSubmit: (data: JobFormData) => void;
   isLoading: boolean;
-  selectedCompany: Company;
+  selectedCompany: Company | null;
 }
 
-const defaultValues: Partial<JobFormData> = {
-  experienceLevel: 'Mid Level',
-  educationLevel: 'High School',
-  employmentType: 'Full Time'
-};
-
 export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
+  const [suggestedCategories, setSuggestedCategories] = useState<SkillCategory[]>([]);
+  const [isLoadingSkills, setIsLoadingSkills] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const { register, handleSubmit, watch, setValue, reset } = useForm<JobFormData>({
     defaultValues: {
-      ...defaultValues,
-      onshoreLocation: selectedCompany.onshoreLocation
+      experienceLevel: 'Mid Level',
+      educationLevel: 'High School',
+      employmentType: 'Full Time',
+      onshoreLocation: selectedCompany?.onshoreLocation || ''
     }
   });
 
-  const [suggestedCategories, setSuggestedCategories] = useState<SkillCategory[]>([]);
-  const [isLoadingSkills, setIsLoadingSkills] = useState(false);
-  const [skillsError, setSkillsError] = useState<string | null>(null);
+  // Update form when selected company changes
+  useEffect(() => {
+    if (selectedCompany) {
+      setValue('onshoreLocation', selectedCompany.onshoreLocation);
+    }
+  }, [selectedCompany, setValue]);
+
   const currentSkills = watch('requiredSkills') || '';
   const currentSkillsArray = currentSkills.split(',').map(s => s.trim()).filter(Boolean);
 
-  // Update form when selected company changes
-  useEffect(() => {
-    setValue('onshoreLocation', selectedCompany.onshoreLocation);
-  }, [selectedCompany, setValue]);
-
   const handleSuggestSkills = async () => {
     setIsLoadingSkills(true);
-    setSkillsError(null);
     try {
       const result = await suggestSkills({
         ...watch(),
@@ -48,7 +46,6 @@ export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
       });
       setSuggestedCategories(result.categories || []);
     } catch (error) {
-      setSkillsError(error instanceof Error ? error.message : 'Failed to suggest skills');
       console.error('Error suggesting skills:', error);
     } finally {
       setIsLoadingSkills(false);
@@ -71,8 +68,50 @@ export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
     setValue('requiredSkills', newSkills);
   };
 
+  const validateForm = (data: JobFormData): string | null => {
+    if (!data.jobTitle) {
+      return 'Job title is required';
+    }
+    if (!data.requiredSkills) {
+      return 'At least one required skill is needed';
+    }
+    if (!selectedCompany) {
+      return 'Please select a company first';
+    }
+    return null;
+  };
+
+  const handleFormSubmit = async (data: JobFormData) => {
+    try {
+      setError(null);
+      const validationError = validateForm(data);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      await onSubmit(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Form submission error:', err);
+    }
+  };
+
+  if (!selectedCompany) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        Please select a company first to create a new position.
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
           label="Job Title"
@@ -88,7 +127,6 @@ export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
           register={register}
           required
           placeholder="e.g., United States"
-          defaultValue={selectedCompany.onshoreLocation}
         />
 
         <FormField
@@ -127,7 +165,6 @@ export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
         onAddSkill={addSkill}
         onRemoveSkill={removeSkill}
         register={register}
-        error={skillsError}
       />
 
       <div className="flex justify-end">

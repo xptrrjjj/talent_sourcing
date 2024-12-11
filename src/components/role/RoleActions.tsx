@@ -1,15 +1,12 @@
 import React from 'react';
-import { Save, Send, Loader } from 'lucide-react';
-import type { SavedPosition } from '../../types';
+import { Save, Loader } from 'lucide-react';
 
 interface Props {
   onSave: () => void;
-  onPublish: () => void;
-  isPublishing: boolean;
   isSaving: boolean;
 }
 
-export function RoleActions({ onSave, onPublish, isPublishing, isSaving }: Props) {
+export function RoleActions({ onSave, isSaving }: Props) {
   return (
     <div className="flex justify-end space-x-4 mt-8">
       <button
@@ -27,25 +24,6 @@ export function RoleActions({ onSave, onPublish, isPublishing, isSaving }: Props
           <>
             <Save className="w-4 h-4 mr-2" />
             Save Role
-          </>
-        )}
-      </button>
-
-      <button
-        type="button"
-        onClick={onPublish}
-        disabled={isPublishing}
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-magentiq hover:bg-magentiq/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-magentiq disabled:opacity-50"
-      >
-        {isPublishing ? (
-          <>
-            <Loader className="w-4 h-4 mr-2 animate-spin" />
-            Publishing...
-          </>
-        ) : (
-          <>
-            <Send className="w-4 h-4 mr-2" />
-            Publish Role
           </>
         )}
       </button>

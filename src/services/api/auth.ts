@@ -1,41 +1,60 @@
 import axios from 'axios';
-import { APIError } from '../errors';
+import { apiClient } from './client';
+import type { User, AuthResponse } from '../../types';
 
-const API_URL = 'http://44.211.135.244:8000';
-const APP_ID = 'talent_sourcing_platform';
-
-interface LoginResponse {
-  status: 'success' | 'error';
-  access_token: string | null;
-  refresh_token: string | null;
-  user: {
-    id: number;
-    username: string;
-  } | null;
-  message: string;
-}
-
-export async function login(username: string, password: string): Promise<LoginResponse> {
+export async function login(username: string, password: string): Promise<User> {
   try {
-    const response = await axios.post(`${API_URL}/api/auth/login/`, {
+    const response = await apiClient.post<AuthResponse>('/api/auth/login/', {
       username,
       password,
-      app_id: APP_ID
+      app_id: 'talent_sourcing_platform'
     });
 
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new APIError(error.response.data.message || 'Login failed');
+    if (response.data.status === 'error' || !response.data.access_token || !response.data.user) {
+      throw new Error(response.data.message || 'Login failed');
     }
-    throw new APIError('Failed to connect to authentication server');
+
+    // Store tokens
+    localStorage.setItem('access_token', response.data.access_token);
+    localStorage.setItem('refresh_token', response.data.refresh_token!);
+
+    // Return user data
+    return {
+      id: response.data.user.id.toString(),
+      name: response.data.user.username,
+      email: `${response.data.user.username}@example.com` // Placeholder
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Login failed');
+    }
+    throw error;
   }
 }
 
-export function setAuthToken(token: string) {
-  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-}
+export async function refreshAccessToken(): Promise<string> {
+  const refreshToken = localStorage.getItem('refresh_token');
+  
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
 
-export function clearAuthToken() {
-  delete axios.defaults.headers.common['Authorization'];
+  try {
+    const response = await apiClient.post<AuthResponse>('/api/auth/refresh/', {
+      refresh_token: refreshToken,
+      app_id: 'talent_sourcing_platform'
+    });
+
+    if (response.data.status === 'error' || !response.data.access_token) {
+      throw new Error(response.data.message || 'Token refresh failed');
+    }
+
+    localStorage.setItem('access_token', response.data.access_token);
+    return response.data.access_token;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Token refresh failed');
+    }
+    throw error;
+  }
 }

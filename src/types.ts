@@ -1,4 +1,53 @@
-import React from 'react';
+// API Types
+export interface DatastoreResponse {
+  status: 'success' | 'error';
+  message?: string;
+  data?: DatastoreRecord[];
+}
+
+export interface DatastoreRecord {
+  app_id: string;
+  record_id: string;
+  type: string;
+  data: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ErrorResponse {
+  status: 'error';
+  message: string;
+}
+
+// User Types
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface AuthResponse {
+  status: 'success' | 'error';
+  access_token: string | null;
+  refresh_token: string | null;
+  user: {
+    id: number;
+    username: string;
+  } | null;
+  message: string;
+}
+
+// Company Types
+export interface Company {
+  id: string;
+  name: string;
+  website?: string;
+  contactName: string;
+  source: string;
+  onshoreLocation: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface CompanyFormData {
   companyName: string;
@@ -8,16 +57,7 @@ export interface CompanyFormData {
   onshoreLocation: string;
 }
 
-export interface JobFormData {
-  jobTitle: string;
-  companyId: string;
-  onshoreLocation: string;
-  requiredSkills: string;
-  experienceLevel: string;
-  educationLevel: string;
-  employmentType: string;
-}
-
+// Job and Position Types
 export interface JobDescription {
   overview: string;
   responsibilities: string[];
@@ -40,48 +80,34 @@ export interface TalentAnalysis {
     name: string;
     url: string;
   }>;
+  marketTrends: string[];
+  insights?: string[];
+}
+
+export interface JobFormData {
+  jobTitle: string;
+  companyId: string;
+  onshoreLocation: string;
+  requiredSkills: string;
+  experienceLevel: string;
+  educationLevel: string;
+  employmentType: string;
 }
 
 export interface SavedPosition {
   id: string;
   createdAt: string;
   updatedAt: string;
-  companyData: CompanyFormData;
+  userId: string;
+  userName: string;
+  status: 'draft' | 'active' | 'archived';
+  companyData: {
+    companyName: string;
+    website?: string;
+    contactName: string;
+    source: string;
+    onshoreLocation: string;
+  };
   formData: JobFormData;
   analysis: TalentAnalysis;
-  status: 'draft' | 'active' | 'archived';
-}
-
-export interface SkillCategory {
-  name: string;
-  skills: string[];
-}
-
-export interface SkillSuggestionResponse {
-  categories: SkillCategory[];
-  experienceLevels: string[];
-  educationLevels: string[];
-}
-
-export interface Company {
-  id: string;
-  name: string;
-  website?: string;
-  contactName: string;
-  source: string;
-  onshoreLocation: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ApplicationRole {
-  client: string;
-  title: string;
-  count: number;
-}
-
-export interface ApplicationStage {
-  stage: string;
-  count: number;
-  roles: ApplicationRole[];
 }

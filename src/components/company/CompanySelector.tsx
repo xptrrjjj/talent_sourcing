@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Building2, Search, MapPin, Edit2, Archive, MoreVertical, Loader } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Building2, Search, MapPin, Edit2, Archive, MoreVertical } from 'lucide-react';
 import type { Company } from '../../types';
-import { searchCompanies } from '../../services/api/datastore';
-import { debounce } from 'lodash';
 
 interface Props {
   companies: Company[];
@@ -14,7 +12,7 @@ interface Props {
 }
 
 export function CompanySelector({ 
-  companies: initialCompanies, 
+  companies = [], 
   selectedCompany, 
   onSelect, 
   onCreateNew,
@@ -23,54 +21,16 @@ export function CompanySelector({
 }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showActionsFor, setShowActionsFor] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [companies, setCompanies] = useState(initialCompanies);
-  const [error, setError] = useState<string | null>(null);
 
-  const performSearch = debounce(async (query: string) => {
-    if (!query.trim()) {
-      setCompanies(initialCompanies);
-      return;
-    }
+  // Ensure companies is always an array and filter only valid companies
+  const validCompanies = Array.isArray(companies) ? companies.filter(company => 
+    company && company.name && company.contactName
+  ) : [];
 
-    setIsSearching(true);
-    setError(null);
-
-    try {
-      const results = await searchCompanies(query);
-      setCompanies(results);
-    } catch (error) {
-      setError('Failed to search companies');
-      console.error('Search error:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  }, 300);
-
-  useEffect(() => {
-    performSearch(searchTerm);
-    return () => performSearch.cancel();
-  }, [searchTerm]);
-
-  useEffect(() => {
-    if (!searchTerm) {
-      setCompanies(initialCompanies);
-    }
-  }, [initialCompanies]);
-
-  const handleAction = (
-    e: React.MouseEvent,
-    action: 'edit' | 'archive',
-    company: Company
-  ) => {
-    e.stopPropagation();
-    if (action === 'edit') {
-      onEdit(company);
-    } else {
-      onArchive(company);
-    }
-    setShowActionsFor(null);
-  };
+  const filteredCompanies = validCompanies.filter(company => 
+    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.contactName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-4">
@@ -83,20 +43,11 @@ export function CompanySelector({
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-magentiq focus:border-magentiq"
         />
-        {isSearching && (
-          <Loader className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 animate-spin" />
-        )}
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
-          {error}
-        </div>
-      )}
-
-      {companies.length > 0 ? (
+      {filteredCompanies.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {companies.map((company) => (
+          {filteredCompanies.map((company) => (
             <div
               key={company.id}
               className={`group relative flex items-start p-4 rounded-lg border-2 transition-colors cursor-pointer ${
@@ -132,14 +83,22 @@ export function CompanySelector({
                 {showActionsFor === company.id && (
                   <div className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
                     <button
-                      onClick={(e) => handleAction(e, 'edit', company)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(company);
+                        setShowActionsFor(null);
+                      }}
                       className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       <Edit2 className="w-4 h-4 mr-2" />
                       Edit
                     </button>
                     <button
-                      onClick={(e) => handleAction(e, 'archive', company)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onArchive(company);
+                        setShowActionsFor(null);
+                      }}
                       className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       <Archive className="w-4 h-4 mr-2" />
@@ -151,11 +110,11 @@ export function CompanySelector({
             </div>
           ))}
         </div>
-      ) : searchTerm ? (
+      ) : (
         <div className="text-center py-8 text-gray-500">
-          No companies found matching "{searchTerm}"
+          {searchTerm ? `No companies found matching "${searchTerm}"` : 'No companies available'}
         </div>
-      ) : null}
+      )}
 
       <button
         onClick={onCreateNew}

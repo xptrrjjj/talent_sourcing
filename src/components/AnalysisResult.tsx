@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
 import { Check, Link, Share2, Briefcase, AlertCircle, DollarSign, Users, TrendingDown } from 'lucide-react';
-import type { TalentAnalysis, JobFormData } from '../types';
+import type { TalentAnalysis } from '../types';
 import { generateShareableUrl } from '../utils/url';
 import { ClientProposal } from './ClientProposal';
-import { createJob } from '../services/api/recruitcrm';
+import { AnalysisComparison } from './analysis/AnalysisComparison';
 
 interface Props {
   analysis: TalentAnalysis;
-  formData: JobFormData;
+  rawGeminiAnalysis: any;
 }
 
-export function AnalysisResult({ analysis, formData }: Props) {
+export function AnalysisResult({ analysis, rawGeminiAnalysis }: Props) {
   const [showCopied, setShowCopied] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [publishError, setPublishError] = useState<string | null>(null);
-  const [publishSuccess, setPublishSuccess] = useState(false);
   const [proposedRate, setProposedRate] = useState(
     Math.round(analysis.onshoreSalaryRange.min * 0.5)
   );
@@ -38,74 +35,10 @@ export function AnalysisResult({ analysis, formData }: Props) {
   const margin = calculateMargin();
   const costSavings = Math.round((1 - proposedRate/analysis.onshoreSalaryRange.min) * 100);
 
-  const handlePublishToRecruitCRM = async () => {
-    setIsPublishing(true);
-    setPublishError(null);
-    setPublishSuccess(false);
-
-    try {
-      const skills = formData.requiredSkills.split(',').map(s => s.trim()).filter(Boolean);
-      
-      await createJob({
-        ...analysis.jobDescription,
-        title: formData.jobTitle,
-        experienceLevel: formData.experienceLevel,
-        educationLevel: formData.educationLevel,
-        skills,
-        salaryRange: analysis.onshoreSalaryRange,
-        location: formData.onshoreLocation
-      });
-
-      setPublishSuccess(true);
-    } catch (error) {
-      setPublishError(error instanceof Error ? error.message : 'Failed to publish job');
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
   return (
     <div className="space-y-8">
       <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="flex justify-between items-start mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Analysis Results</h2>
-          <div className="flex space-x-2">
-            <button
-              onClick={handlePublishToRecruitCRM}
-              disabled={isPublishing}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              <Briefcase className="w-4 h-4 mr-2" />
-              {isPublishing ? 'Publishing...' : 'Publish to RecruitCRM'}
-            </button>
-          </div>
-        </div>
-
-        {publishError && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Failed to publish job</h3>
-                <p className="text-sm text-red-700 mt-1">{publishError}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {publishSuccess && (
-          <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-4">
-            <div className="flex">
-              <Check className="h-5 w-5 text-green-400" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">Job published successfully</h3>
-                <p className="text-sm text-green-700 mt-1">
-                  The job has been published to RecruitCRM and is now ready for candidates.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Analysis Results</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-blue-50 p-4 rounded-lg">
@@ -158,6 +91,11 @@ export function AnalysisResult({ analysis, formData }: Props) {
             </div>
           </div>
         </div>
+
+        <AnalysisComparison
+          gptAnalysis={analysis}
+          geminiAnalysis={rawGeminiAnalysis}
+        />
 
         <div className="mt-8 border-t pt-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Data Sources</h3>
