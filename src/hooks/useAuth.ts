@@ -14,25 +14,28 @@ export function useAuth() {
         console.log('[Auth] Handling MSAL redirect...');
         const response = await msalInstance.handleRedirectPromise();
         console.log('[Auth] MSAL Redirect Response:', response);
-
-        if (response?.account) {
+    
+        if (response?.account && response?.idToken) {
           console.log('[Auth] Logged in MSAL Account:', response.account);
-
-          // Exchange code for backend token
+    
+          // Exchange authorization code (response.idToken) for backend token
           const backendResponse = await apiClient.post('/api/auth/microsoft/callback', {
-            code: response.accessToken,
+            code: response.idToken, // Send the ID token as the 'code'
           });
           console.log('[Auth] Backend Response:', backendResponse.data);
-
+    
           if (backendResponse.data.access_token) {
             localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, backendResponse.data.access_token);
             localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(backendResponse.data.user));
           }
+        } else {
+          console.error('[Auth] No account or idToken in MSAL response.');
         }
       } catch (error) {
         console.error('[Auth] Error handling MSAL response:', error);
       }
     };
+    
 
     handleMsalResponse();
   }, [msalInstance]);
