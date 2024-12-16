@@ -34,8 +34,8 @@ export async function login(username: string, password: string): Promise<User> {
 
 export async function validateMicrosoftToken(): Promise<User> {
   try {
-    // Make a request to the backend to retrieve user information after login
-    const response = await apiClient.get('/api/auth/microsoft/callback');
+    // Fetch user info after successful login
+    const response = await apiClient.get('/api/auth/microsoft/user'); // Example endpoint for fetching user info
 
     if (response.data.status === 'error' || !response.data.user) {
       throw new Error(response.data.message || 'Microsoft login failed');
@@ -61,6 +61,7 @@ export async function validateMicrosoftToken(): Promise<User> {
     throw error;
   }
 }
+
 
 
 export async function refreshAccessToken(): Promise<string> {
