@@ -3,6 +3,7 @@ import { refreshAccessToken } from './auth';
 import { msalRequest, msalConfig } from '../../config/msal';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { AUTH_STORAGE_KEYS } from '../../config/auth';
+import { getMsalInstance } from '../msal';
 
 const BASE_URL = 'https://44.211.135.244:8000';
 
@@ -44,6 +45,58 @@ const handleAuthError = (error: any) => {
   return Promise.reject(error);
 };
 
+// Add this helper function
+const getMicrosoftToken = async () => {
+  try {
+    const msalInstance = await getMsalInstance();
+    const accounts = msalInstance.getAllAccounts();
+    logToStorage('MSAL accounts found', { 
+      count: accounts.length,
+      accountDetails: accounts.map(acc => ({
+        username: acc.username,
+        homeAccountId: acc.homeAccountId
+      }))
+    });
+    
+    if (accounts.length > 0) {
+      try {
+        logToStorage('Attempting silent token acquisition');
+        const tokenResponse = await msalInstance.acquireTokenSilent({
+          scopes: msalRequest.scopes,
+          account: accounts[0]
+        });
+        logToStorage('Silent token acquired successfully', {
+          scopes: tokenResponse.scopes,
+          tokenLength: tokenResponse.accessToken.length,
+          account: tokenResponse.account.username
+        });
+        return tokenResponse.accessToken;
+      } catch (silentError) {
+        logToStorage('Silent token acquisition failed', silentError);
+        logToStorage('Attempting interactive token acquisition');
+        const interactiveResponse = await msalInstance.acquireTokenPopup({
+          scopes: msalRequest.scopes,
+          account: accounts[0]
+        });
+        logToStorage('Interactive token acquired successfully', {
+          scopes: interactiveResponse.scopes,
+          tokenLength: interactiveResponse.accessToken.length,
+          account: interactiveResponse.account.username
+        });
+        return interactiveResponse.accessToken;
+      }
+    }
+    logToStorage('No MSAL accounts found');
+    return null;
+  } catch (error) {
+    logToStorage('Failed to get Microsoft token', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return null;
+  }
+};
+
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -53,45 +106,28 @@ export const apiClient = axios.create({
 
 // Add request interceptor to handle authentication
 apiClient.interceptors.request.use(async (config) => {
-  console.log('Request interceptor start:', { url: config.url });
+  logToStorage('Request interceptor start', { url: config.url });
   
   if (isUsingMicrosoftAuth()) {
-    console.log('Using Microsoft authentication');
-    try {
-      const msalInstance = new PublicClientApplication(msalConfig);
-      const accounts = msalInstance.getAllAccounts();
-      console.log('MSAL accounts:', accounts);
-      
-      if (accounts.length > 0) {
-        const tokenResponse = await msalInstance.acquireTokenSilent({
-          scopes: msalRequest.scopes,
-          account: accounts[0]
-        });
-        console.log('Got Microsoft token:', { 
-          tokenLength: tokenResponse.accessToken.length,
-          scopes: tokenResponse.scopes 
-        });
-        
-        config.headers.Authorization = `Bearer ${tokenResponse.accessToken}`;
-        return config;
-      }
-    } catch (error) {
-      console.error('Error getting Microsoft token:', error);
+    const token = await getMicrosoftToken();
+    if (token) {
+      logToStorage('Using Microsoft token', { tokenLength: token.length });
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      logToStorage('No Microsoft token available - redirecting to login');
+      handleAuthError(new Error('No Microsoft token available'));
     }
   } else {
-    console.log('Using regular authentication');
     const token = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
     if (token) {
+      logToStorage('Using stored token', { tokenLength: token.length });
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('Using stored token:', { tokenLength: token.length });
     } else {
-      console.log('No token found');
+      logToStorage('No token found - redirecting to login');
+      handleAuthError(new Error('No token available'));
     }
   }
   return config;
-}, (error) => {
-  console.error('Request interceptor error:', error);
-  return Promise.reject(error);
 });
 
 // Add response interceptor to handle token refresh
