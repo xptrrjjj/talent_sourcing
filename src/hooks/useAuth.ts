@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
-import { login as apiLogin, validateMicrosoftToken } from '../services/api/auth';
-import { msalRequest, AUTH_STORAGE_KEYS } from '../config/auth';
+import { validateMicrosoftToken, logout as apiLogout } from '../services/api/auth';
+import { msalRequest } from '../config/msal';
+import { AUTH_STORAGE_KEYS } from '../config/auth';
 import type { User } from '../types';
 
 export function useAuth() {
@@ -9,47 +10,36 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Clear authentication data from local storage
   const clearAuthData = useCallback(() => {
-    Object.values(AUTH_STORAGE_KEYS).forEach(key => {
+    Object.values(AUTH_STORAGE_KEYS).forEach((key) => {
       localStorage.removeItem(key);
     });
   }, []);
 
+  // Save user data to local storage
   const setAuthData = useCallback((user: User) => {
     localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(user));
   }, []);
 
-  const login = async (username: string, password: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const user = await apiLogin(username, password);
-      setAuthData(user);
-      return user;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed';
-      setError(message);
-      throw new Error(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Login with Microsoft
   const loginWithMicrosoft = async (): Promise<User> => {
     setIsLoading(true);
     setError(null);
     try {
+      // Use MSAL to log in via popup
       const result = await msalInstance.loginPopup(msalRequest);
 
       if (!result.accessToken) {
-        throw new Error('Failed to get Microsoft access token');
+        throw new Error('Failed to retrieve Microsoft access token');
       }
 
-      const user = await validateMicrosoftToken(result.accessToken);
+      // Backend handles the redirect and validates the token
+      const user = await validateMicrosoftToken();
       setAuthData(user);
       return user;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Microsoft login failed';
+    } catch (err: any) {
+      const message = err.message || 'Microsoft login failed';
       setError(message);
       throw new Error(message);
     } finally {
@@ -57,27 +47,28 @@ export function useAuth() {
     }
   };
 
+  // Logout from Microsoft and clear local storage
   const logout = async () => {
     try {
       const msalAccount = msalInstance.getAllAccounts()[0];
       if (msalAccount) {
         await msalInstance.logoutPopup({
           account: msalAccount,
-          postLogoutRedirectUri: window.location.origin
+          postLogoutRedirectUri: window.location.origin,
         });
       }
+      await apiLogout();
     } catch (error) {
-      console.error('Microsoft logout error:', error);
+      console.error('Logout error:', error);
     } finally {
       clearAuthData();
     }
   };
 
   return {
-    login,
     loginWithMicrosoft,
     logout,
     isLoading,
-    error
+    error,
   };
 }
