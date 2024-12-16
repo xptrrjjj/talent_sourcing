@@ -12,20 +12,27 @@ export function useAuth() {
   useEffect(() => {
     const handleMsalResponse = async () => {
       try {
-        // Initialize MSAL first
         await msalInstance.initialize();
-        
         const response = await msalInstance.handleRedirectPromise();
         console.log('MSAL Response:', response);
 
-        // Check if we have an account after redirect
         const accounts = msalInstance.getAllAccounts();
         if (accounts.length > 0) {
           const account = accounts[0];
           console.log('Logged in account:', account);
 
-          // Get user info from backend
-          const backendResponse = await apiClient.get('/api/auth/microsoft/user');
+          // Get access token for the user
+          const tokenResponse = await msalInstance.acquireTokenSilent({
+            scopes: ['User.Read', 'profile', 'email'],
+            account: account
+          });
+
+          // Get user info from backend with token
+          const backendResponse = await apiClient.get('/api/auth/microsoft/user', {
+            headers: {
+              'Authorization': `Bearer ${tokenResponse.accessToken}`
+            }
+          });
           console.log('Backend Response:', backendResponse.data);
 
           if (backendResponse.data.user) {
