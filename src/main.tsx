@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
-import { msalConfig } from './config/auth';
+import { msalConfig } from './config/msal';
 import App from './App';
 import { UserProvider } from './contexts/UserContext';
 import './index.css';
