@@ -30,18 +30,28 @@ const handleAuthError = (error: any) => {
   logToStorage('Auth error occurred', {
     status: error.response?.status,
     url: error.config?.url,
+    message: error.message,
+    stack: error.stack
+  });
+  
+  console.error('Auth error:', {
+    status: error.response?.status,
+    url: error.config?.url,
     message: error.message
   });
   
-  // Add a delay before redirect to prevent rapid loops
+  // Add a 10-minute delay before redirect
   const lastRedirect = localStorage.getItem('last_auth_redirect');
   const now = Date.now();
-  if (!lastRedirect || (now - parseInt(lastRedirect)) > 5000) { // 5 second cooldown
+  const TEN_MINUTES = 10 * 60 * 1000; // 10 minutes in milliseconds
+  
+  if (!lastRedirect || (now - parseInt(lastRedirect)) > TEN_MINUTES) {
     localStorage.setItem('last_auth_redirect', now.toString());
     setTimeout(() => {
       window.location.href = '/login';
     }, 1000);
   }
+  
   return Promise.reject(error);
 };
 
@@ -50,49 +60,24 @@ const getMicrosoftToken = async () => {
   try {
     const msalInstance = await getMsalInstance();
     const accounts = msalInstance.getAllAccounts();
-    logToStorage('MSAL accounts found', { 
-      count: accounts.length,
-      accountDetails: accounts.map(acc => ({
-        username: acc.username,
-        homeAccountId: acc.homeAccountId
-      }))
-    });
+    logToStorage('MSAL accounts found', { count: accounts.length });
     
     if (accounts.length > 0) {
       try {
-        logToStorage('Attempting silent token acquisition');
         const tokenResponse = await msalInstance.acquireTokenSilent({
-          scopes: msalRequest.scopes,
+          scopes: ['User.Read', 'profile', 'email', 'openid'],  // Add openid scope
           account: accounts[0]
-        });
-        logToStorage('Silent token acquired successfully', {
-          scopes: tokenResponse.scopes,
-          tokenLength: tokenResponse.accessToken.length,
-          account: tokenResponse.account.username
         });
         return tokenResponse.accessToken;
       } catch (silentError) {
         logToStorage('Silent token acquisition failed', silentError);
-        logToStorage('Attempting interactive token acquisition');
-        const interactiveResponse = await msalInstance.acquireTokenPopup({
-          scopes: msalRequest.scopes,
-          account: accounts[0]
-        });
-        logToStorage('Interactive token acquired successfully', {
-          scopes: interactiveResponse.scopes,
-          tokenLength: interactiveResponse.accessToken.length,
-          account: interactiveResponse.account.username
-        });
-        return interactiveResponse.accessToken;
+        // Don't try popup, just return null to trigger reauth
+        return null;
       }
     }
-    logToStorage('No MSAL accounts found');
     return null;
   } catch (error) {
-    logToStorage('Failed to get Microsoft token', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    logToStorage('Failed to get Microsoft token', error);
     return null;
   }
 };
@@ -113,9 +98,14 @@ apiClient.interceptors.request.use(async (config) => {
     if (token) {
       logToStorage('Using Microsoft token', { tokenLength: token.length });
       config.headers.Authorization = `Bearer ${token}`;
+      // Store token for future use
+      localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, token);
     } else {
-      logToStorage('No Microsoft token available - redirecting to login');
-      handleAuthError(new Error('No Microsoft token available'));
+      logToStorage('No Microsoft token available');
+      // Clear any stored tokens
+      localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
+      return handleAuthError(new Error('No Microsoft token available'));
     }
   } else {
     const token = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
@@ -123,11 +113,14 @@ apiClient.interceptors.request.use(async (config) => {
       logToStorage('Using stored token', { tokenLength: token.length });
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      logToStorage('No token found - redirecting to login');
-      handleAuthError(new Error('No token available'));
+      logToStorage('No token found');
+      return handleAuthError(new Error('No token available'));
     }
   }
   return config;
+}, (error) => {
+  logToStorage('Request interceptor error', error);
+  return Promise.reject(error);
 });
 
 // Add response interceptor to handle token refresh
