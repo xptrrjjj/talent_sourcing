@@ -2,6 +2,7 @@ import { useMsal } from '@azure/msal-react';
 import { msalRequest } from '../config/msal';
 import { apiClient } from '../services/api/client';
 import { AUTH_STORAGE_KEYS } from '../config/auth';
+import axios from 'axios';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
@@ -26,6 +27,9 @@ export function useAuth() {
         }
       } catch (error) {
         console.error('Error handling Microsoft login:', error);
+        if (axios.isAxiosError(error)) {
+          console.error('Response data:', error.response?.data); // Log the response data for debugging
+        }
       } finally {
         // Clean up URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
