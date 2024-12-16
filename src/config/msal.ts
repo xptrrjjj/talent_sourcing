@@ -40,5 +40,5 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest: PopupRequest = {
-  scopes: ['User.Read', 'profile', 'email'], // Ensure these scopes are granted in Azure AD
+  scopes: ['User.Read', 'profile', 'email', 'offline_access'], // Ensure these scopes are granted in Azure AD
 };
