@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
-import { AUTH_STORAGE_KEYS } from '../config/auth';
-import { apiClient } from '../services/api/client';
 import { msalRequest } from '../config/msal';
+import { apiClient } from '../services/api/client';
+import { AUTH_STORAGE_KEYS } from '../config/auth';
+import type { User } from '../types';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
@@ -15,42 +16,45 @@ export function useAuth() {
     });
   }, []);
 
-  const setAuthData = useCallback((user: any) => {
+  const setAuthData = useCallback((user: User) => {
     localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(user));
   }, []);
 
   const loginWithMicrosoft = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
-  
+
     try {
-      // Trigger login redirect with backend's redirect URI
-      await msalInstance.loginRedirect({
-        scopes: msalRequest.scopes,
-        redirectUri: 'https://44.211.135.244:8000/api/auth/microsoft/callback'
-      });
-  
-      // The backend will handle the exchange and create a user session
-      const response = await apiClient.get('/api/auth/microsoft/user'); // Endpoint to fetch user session from backend
-      console.log('Backend response:', response.data);
-  
-      // Save user data from backend response
-      if (response.data.user) {
-        setAuthData(response.data.user); // Assuming `setAuthData` saves user data in localStorage
-      } else {
-        throw new Error('Invalid backend response');
-      }
+      // Trigger login redirect
+      await msalInstance.loginRedirect(msalRequest);
+      // Note: No code execution happens here after redirect
     } catch (err: any) {
       console.error('Microsoft login error:', err);
       setError(err.message || 'Microsoft login failed');
-      throw new Error(err.message || 'Microsoft login failed');
     } finally {
       setIsLoading(false);
     }
   };
-  
 
-  const logout = async () => {
+  const fetchUserFromBackend = async (): Promise<User> => {
+    try {
+      // Fetch authenticated user session from the backend
+      const response = await apiClient.get('/api/auth/microsoft/user');
+      console.log('Backend response:', response.data);
+
+      if (response.data.user) {
+        setAuthData(response.data.user); // Save user data to localStorage
+        return response.data.user;
+      } else {
+        throw new Error('Invalid backend response');
+      }
+    } catch (err: any) {
+      console.error('Error fetching user:', err);
+      throw new Error(err.response?.data?.message || 'Failed to fetch user');
+    }
+  };
+
+  const logout = async (): Promise<void> => {
     try {
       const msalAccount = msalInstance.getAllAccounts()[0];
       if (msalAccount) {
@@ -59,11 +63,9 @@ export function useAuth() {
           postLogoutRedirectUri: window.location.origin,
         });
       }
-
-      // Notify the backend to clear session
       await apiClient.post('/api/auth/logout/');
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch (err) {
+      console.error('Logout error:', err);
     } finally {
       clearAuthData();
     }
@@ -71,6 +73,7 @@ export function useAuth() {
 
   return {
     loginWithMicrosoft,
+    fetchUserFromBackend,
     logout,
     isLoading,
     error,

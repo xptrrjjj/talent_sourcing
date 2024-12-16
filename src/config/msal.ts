@@ -17,14 +17,14 @@
 // };
 
 
-import { Configuration, PopupRequest, LogLevel } from '@azure/msal-browser';
+import { Configuration, RedirectRequest, LogLevel } from '@azure/msal-browser';
 
 export const msalConfig: Configuration = {
   auth: {
     clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '', // Azure App (Client) ID
     authority: `https://login.microsoftonline.com/${import.meta.env.VITE_MICROSOFT_TENANT_ID || 'common'}`, // Tenant ID
-    redirectUri: 'https://44.211.135.244:8000/api/auth/microsoft/callback', // Backend redirect URI
-    postLogoutRedirectUri: window.location.origin, // Frontend post-logout URI
+    redirectUri: window.location.origin, // Frontend URI to handle post-login flow
+    postLogoutRedirectUri: window.location.origin, // Frontend URI post-logout
   },
   cache: {
     cacheLocation: 'sessionStorage',
@@ -37,11 +37,12 @@ export const msalConfig: Configuration = {
         console.log(`[MSAL:${level}] ${message}`);
       },
     },
-    allowNativeBroker: false,
+    allowNativeBroker: false, // Only relevant for desktop apps
   },
 };
 
-export const msalRequest: PopupRequest = {
-  scopes: ['User.Read', 'profile', 'email'], // Azure AD App Scopes
-  prompt: 'select_account',
+// Use RedirectRequest for proper flow
+export const msalRequest: RedirectRequest = {
+  scopes: ['User.Read', 'profile', 'email'], // Ensure these match Azure's app registration permissions
+  redirectUri: 'https://44.211.135.244:8000/api/auth/microsoft/callback', // Backend callback URI
 };
