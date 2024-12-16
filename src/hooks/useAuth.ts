@@ -3,47 +3,52 @@ import { msalRequest } from '../config/msal';
 import { apiClient } from '../services/api/client';
 import { AUTH_STORAGE_KEYS } from '../config/auth';
 import axios from 'axios';
+import { useEffect } from 'react';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
 
-  // Handles the code sent via query parameters
-  const handleRedirect = async () => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-
-    if (code) {
+  // Handle MSAL redirect response
+  useEffect(() => {
+    const handleMsalResponse = async () => {
       try {
-        console.log('Received code:', code);
+        const response = await msalInstance.handleRedirectPromise();
+        if (response) {
+          console.log('MSAL Response:', response);
+          const params = new URLSearchParams(window.location.search);
+          const code = params.get('code');
+          console.log('Auth Code:', code);
 
-        // Send the code to the backend for token exchange
-        const response = await apiClient.post('/api/auth/microsoft/callback', { code });
+          if (code) {
+            // Send the code to the backend
+            const backendResponse = await apiClient.post('/api/auth/microsoft/callback', { code });
+            console.log('Backend Response:', backendResponse.data);
 
-        console.log('Backend response:', response.data);
-
-        if (response.data.access_token) {
-          localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
-          localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
+            if (backendResponse.data.access_token) {
+              localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, backendResponse.data.access_token);
+              localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(backendResponse.data.user));
+            }
+          }
         }
       } catch (error) {
-        console.error('Error handling Microsoft login:', error);
+        console.error('Error handling Microsoft redirect:', error);
         if (axios.isAxiosError(error)) {
-          console.error('Response data:', error.response?.data); // Log the response data for debugging
+          console.error('Response data:', error.response?.data);
         }
       } finally {
         // Clean up URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
       }
-    }
-  };
+    };
 
-  // Initiates the login flow
+    handleMsalResponse();
+  }, [msalInstance]);
+
   const loginWithMicrosoft = async () => {
     await msalInstance.loginRedirect(msalRequest);
   };
 
   return {
     loginWithMicrosoft,
-    handleRedirect,
   };
 }
