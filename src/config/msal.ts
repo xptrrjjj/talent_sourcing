@@ -21,6 +21,6 @@ export const msalConfig: Configuration = {
 };
 
 export const msalRequest: PopupRequest = {
-  scopes: [`api://${msalConfig.auth.clientId}/access_as_user`],
-  prompt: 'select_account'
+  scopes: [`api://${msalConfig.auth.clientId}/.default`], // Correct scope for backend API access
+  prompt: 'select_account',
 };
