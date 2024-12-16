@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserContext } from '../contexts/UserContext';
 import { MicrosoftLoginButton } from '../components/auth/MicrosoftLoginButton';
 import { LoginForm } from '../components/auth/LoginForm';
@@ -24,6 +24,15 @@ export function Login() {
       setFormError(err instanceof Error ? err.message : 'Microsoft login failed');
     }
   };
+
+  useEffect(() => {
+    const logs = JSON.parse(localStorage.getItem('auth_debug_logs') || '[]');
+    if (logs.length > 0) {
+      console.log('Auth Debug Logs:', logs);
+      // Clear logs after viewing
+      localStorage.removeItem('auth_debug_logs');
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
