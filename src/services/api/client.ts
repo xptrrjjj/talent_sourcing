@@ -64,24 +64,41 @@ const getMicrosoftToken = async () => {
     
     if (accounts.length > 0) {
       try {
-        // Request token for our backend API
-        const tokenResponse = await msalInstance.acquireTokenSilent({
-          scopes: [`api://${msalConfig.auth.clientId}/access_as_user`], // Use your API's scope
+        // First try with Microsoft Graph scopes
+        const graphTokenResponse = await msalInstance.acquireTokenSilent({
+          scopes: ['User.Read', 'profile', 'email', 'openid'],
           account: accounts[0]
         });
         
-        logToStorage('Token acquired for backend API', {
-          scopes: tokenResponse.scopes,
-          tokenType: tokenResponse.tokenType
+        logToStorage('Graph token acquired', {
+          scopes: graphTokenResponse.scopes,
+          tokenType: graphTokenResponse.tokenType
         });
-        
-        return tokenResponse.accessToken;
+
+        // Now try to get token for our API
+        try {
+          const apiTokenResponse = await msalInstance.acquireTokenSilent({
+            scopes: [`api://${msalConfig.auth.clientId}/access_as_user`],
+            account: accounts[0]
+          });
+          
+          logToStorage('API token acquired', {
+            scopes: apiTokenResponse.scopes,
+            tokenType: apiTokenResponse.tokenType
+          });
+          
+          return apiTokenResponse.accessToken;
+        } catch (apiError) {
+          // If API token fails, use Graph token as fallback
+          logToStorage('Using Graph token as fallback', apiError);
+          return graphTokenResponse.accessToken;
+        }
       } catch (silentError) {
         logToStorage('Silent token acquisition failed', silentError);
         try {
-          // Try interactive as fallback
+          // Try interactive as last resort
           const interactiveResponse = await msalInstance.acquireTokenPopup({
-            scopes: [`api://${msalConfig.auth.clientId}/access_as_user`],
+            scopes: ['User.Read', 'profile', 'email', 'openid'],
             account: accounts[0]
           });
           return interactiveResponse.accessToken;
