@@ -23,8 +23,8 @@ export const msalConfig: Configuration = {
   auth: {
     clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '',
     authority: `https://login.microsoftonline.com/${import.meta.env.VITE_MICROSOFT_TENANT_ID || 'common'}`,
-    redirectUri: window.location.origin, // Redirect back to frontend
-    postLogoutRedirectUri: window.location.origin,
+    redirectUri: 'https://44.211.135.244:5173', // Redirect back to frontend
+    postLogoutRedirectUri: 'https://44.211.135.244:5173',
   },
   cache: {
     cacheLocation: 'sessionStorage',
