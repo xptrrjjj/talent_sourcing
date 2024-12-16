@@ -1,4 +1,4 @@
-import { Configuration, PopupRequest, LogLevel } from '@azure/msal-browser';
+import { Configuration, PopupRequest } from '@azure/msal-browser';
 
 export const msalConfig: Configuration = {
   auth: {
@@ -10,15 +10,7 @@ export const msalConfig: Configuration = {
   cache: {
     cacheLocation: 'sessionStorage',
     storeAuthStateInCookie: false,
-  },
-  system: {
-    loggerOptions: {
-      logLevel: LogLevel.Verbose,
-      loggerCallback: (level, message) => {
-        console.log(`[MSAL:${level}] ${message}`);
-      },
-    },
-  },
+  }
 };
 
 export const msalRequest: PopupRequest = {
