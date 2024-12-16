@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
-import { msalRequest } from '../config/msal';
-import { logout as apiLogout } from '../services/api/auth';
 import { AUTH_STORAGE_KEYS } from '../config/auth';
 import { apiClient } from '../services/api/client';
 
@@ -16,25 +14,28 @@ export function useAuth() {
     });
   }, []);
 
+  const setAuthData = useCallback((user: any) => {
+    localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+  }, []);
+
   const loginWithMicrosoft = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
-    try {
-      // Get token from Microsoft
-      const response = await msalInstance.loginPopup(msalRequest);
-      console.log('Microsoft login response:', {
-        accessToken: response.accessToken,
-        account: response.account,
-        scopes: response.scopes
-      });
 
-      // Send the access token to our backend
-      const callbackResponse = await apiClient.post('/api/auth/microsoft/callback', {
-        access_token: response.accessToken,
-        account_id: response.account?.homeAccountId
-      });
-      console.log('Callback response:', callbackResponse.data);
-      
+    try {
+      // Trigger login redirect
+      await msalInstance.loginRedirect();
+
+      // Backend handles redirect URI and exchanges the code for tokens
+      const response = await apiClient.get('/api/auth/microsoft/user'); // Get user session from backend
+      console.log('Backend response:', response.data);
+
+      // Save user data
+      if (response.data.user) {
+        setAuthData(response.data.user);
+      } else {
+        throw new Error('Invalid backend response');
+      }
     } catch (err: any) {
       console.error('Microsoft login error:', err);
       setError(err.message || 'Microsoft login failed');
@@ -53,7 +54,9 @@ export function useAuth() {
           postLogoutRedirectUri: window.location.origin,
         });
       }
-      await apiLogout();
+
+      // Notify the backend to clear session
+      await apiClient.post('/api/auth/logout/');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
