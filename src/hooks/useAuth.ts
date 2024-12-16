@@ -1,4 +1,3 @@
-import { useEffect, useState, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { msalRequest } from '../config/msal';
 import { apiClient } from '../services/api/client';
@@ -6,76 +5,41 @@ import { AUTH_STORAGE_KEYS } from '../config/auth';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const clearAuthData = useCallback(() => {
-    Object.values(AUTH_STORAGE_KEYS).forEach((key) => {
-      localStorage.removeItem(key);
-    });
-  }, []);
+  // Handles the code sent via query parameters
+  const handleRedirect = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
 
-  const setAuthData = (user: any) => {
-    localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(user));
-  };
-
-  // Handle redirect response after returning from Azure
-  useEffect(() => {
-    const handleRedirectResponse = async () => {
+    if (code) {
       try {
-        const response = await msalInstance.handleRedirectPromise();
+        console.log('Received code:', code);
 
-        if (response) {
-          console.log('Redirect response:', response);
-          // Send the token/code to the backend for validation
-          const backendResponse = await apiClient.post('/api/auth/microsoft/callback', {
-            code: response.code, // Ensure the response includes a code or token
-          });
+        // Send the code to the backend for token exchange
+        const response = await apiClient.post('/api/auth/microsoft/callback', { code });
 
-          console.log('Backend response:', backendResponse.data);
+        console.log('Backend response:', response.data);
 
-          if (backendResponse.data.access_token) {
-            setAuthData(backendResponse.data.user);
-          }
+        if (response.data.access_token) {
+          localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
+          localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
         }
-      } catch (err) {
-        console.error('Redirect handling error:', err);
-        setError('Failed to handle redirect response');
+      } catch (error) {
+        console.error('Error handling Microsoft login:', error);
+      } finally {
+        // Clean up URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
-    };
-
-    handleRedirectResponse();
-  }, [msalInstance]);
-
-  // Trigger Microsoft Login Redirect
-  const loginWithMicrosoft = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await msalInstance.loginRedirect(msalRequest);
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError('Microsoft login failed');
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    try {
-      await msalInstance.logoutRedirect({
-        postLogoutRedirectUri: window.location.origin,
-      });
-      clearAuthData();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  // Initiates the login flow
+  const loginWithMicrosoft = async () => {
+    await msalInstance.loginRedirect(msalRequest);
   };
 
   return {
     loginWithMicrosoft,
-    logout,
-    isLoading,
-    error,
+    handleRedirect,
   };
 }
