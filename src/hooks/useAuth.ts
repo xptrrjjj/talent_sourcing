@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
-import { validateMicrosoftToken, logout as apiLogout } from '../services/api/auth';
+import { validateMicrosoftToken } from '../services/api/auth';
 import { msalRequest } from '../config/msal';
-import { AUTH_STORAGE_KEYS } from '../config/auth';
+import { AUTH_STORAGE_KEYS, logout as apiLogout } from '../config/auth';
 import type { User } from '../types';
 
 export function useAuth() {
