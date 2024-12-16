@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
-import { validateMicrosoftToken } from '../services/api/auth';
 import { msalRequest } from '../config/msal';
-import { AUTH_STORAGE_KEYS, logout as apiLogout } from '../config/auth';
-import type { User } from '../types';
+import { logout as apiLogout } from '../services/api/auth';
+import { AUTH_STORAGE_KEYS } from '../config/auth';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
@@ -17,27 +16,13 @@ export function useAuth() {
     });
   }, []);
 
-  // Save user data to local storage
-  const setAuthData = useCallback((user: User) => {
-    localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(user));
-  }, []);
-
-  // Login with Microsoft
-  const loginWithMicrosoft = async (): Promise<User> => {
+  // Login with Microsoft using redirect
+  const loginWithMicrosoft = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
-      // Use MSAL to log in via popup
-      const result = await msalInstance.loginPopup(msalRequest);
-
-      if (!result.accessToken) {
-        throw new Error('Failed to retrieve Microsoft access token');
-      }
-
-      // Backend handles the redirect and validates the token
-      const user = await validateMicrosoftToken();
-      setAuthData(user);
-      return user;
+      // Use MSAL redirect flow to handle Authorization Code Flow
+      await msalInstance.loginRedirect(msalRequest);
     } catch (err: any) {
       const message = err.message || 'Microsoft login failed';
       setError(message);
@@ -47,12 +32,12 @@ export function useAuth() {
     }
   };
 
-  // Logout from Microsoft and clear local storage
+  // Handle logout
   const logout = async () => {
     try {
       const msalAccount = msalInstance.getAllAccounts()[0];
       if (msalAccount) {
-        await msalInstance.logoutPopup({
+        await msalInstance.logoutRedirect({
           account: msalAccount,
           postLogoutRedirectUri: window.location.origin,
         });

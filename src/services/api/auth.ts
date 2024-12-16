@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { apiClient } from './client';
 import type { User, AuthResponse } from '../../types';
+import { AUTH_STORAGE_KEYS } from '../../config/auth';
 
 export async function login(username: string, password: string): Promise<User> {
   try {
@@ -15,8 +16,8 @@ export async function login(username: string, password: string): Promise<User> {
     }
 
     // Store tokens
-    localStorage.setItem('access_token', response.data.access_token);
-    localStorage.setItem('refresh_token', response.data.refresh_token!);
+    localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
+    localStorage.setItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN, response.data.refresh_token!);
 
     // Return user data
     return {
@@ -43,10 +44,10 @@ export async function validateMicrosoftToken(): Promise<User> {
 
     // Store tokens if provided
     if (response.data.access_token) {
-      localStorage.setItem('access_token', response.data.access_token);
+      localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
     }
     if (response.data.refresh_token) {
-      localStorage.setItem('refresh_token', response.data.refresh_token);
+      localStorage.setItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN, response.data.refresh_token);
     }
 
     return {
@@ -65,7 +66,7 @@ export async function validateMicrosoftToken(): Promise<User> {
 
 
 export async function refreshAccessToken(): Promise<string> {
-  const refreshToken = localStorage.getItem('refresh_token');
+  const refreshToken = localStorage.getItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
   
   if (!refreshToken) {
     throw new Error('No refresh token available');
@@ -81,12 +82,24 @@ export async function refreshAccessToken(): Promise<string> {
       throw new Error(response.data.message || 'Token refresh failed');
     }
 
-    localStorage.setItem('access_token', response.data.access_token);
+    localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
     return response.data.access_token;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error(error.response?.data?.message || 'Token refresh failed');
     }
     throw error;
+  }
+}
+
+export async function logout(): Promise<void> {
+  try {
+    // Clear backend session
+    await apiClient.post('/api/auth/logout/');
+  } finally {
+    // Clear local storage (even if backend call fails)
+    localStorage.removeItem(AUTH_STORAGE_KEYS.USER_DATA);
+    localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
   }
 }
