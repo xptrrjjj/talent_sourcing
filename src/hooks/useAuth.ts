@@ -9,30 +9,26 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Clear authentication data from local storage
   const clearAuthData = useCallback(() => {
     Object.values(AUTH_STORAGE_KEYS).forEach((key) => {
       localStorage.removeItem(key);
     });
   }, []);
 
-  // Login with Microsoft using redirect
   const loginWithMicrosoft = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
-      // Use MSAL redirect flow to handle Authorization Code Flow
       await msalInstance.loginRedirect(msalRequest);
+      // Backend handles the redirect and processes the 'code'
     } catch (err: any) {
-      const message = err.message || 'Microsoft login failed';
-      setError(message);
-      throw new Error(message);
+      setError(err.message || 'Microsoft login failed');
+      throw new Error(err.message || 'Microsoft login failed');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle logout
   const logout = async () => {
     try {
       const msalAccount = msalInstance.getAllAccounts()[0];
