@@ -64,15 +64,31 @@ const getMicrosoftToken = async () => {
     
     if (accounts.length > 0) {
       try {
+        // Request token for our backend API
         const tokenResponse = await msalInstance.acquireTokenSilent({
-          scopes: ['User.Read', 'profile', 'email', 'openid'],  // Add openid scope
+          scopes: [`api://${msalConfig.auth.clientId}/access_as_user`], // Use your API's scope
           account: accounts[0]
         });
+        
+        logToStorage('Token acquired for backend API', {
+          scopes: tokenResponse.scopes,
+          tokenType: tokenResponse.tokenType
+        });
+        
         return tokenResponse.accessToken;
       } catch (silentError) {
         logToStorage('Silent token acquisition failed', silentError);
-        // Don't try popup, just return null to trigger reauth
-        return null;
+        try {
+          // Try interactive as fallback
+          const interactiveResponse = await msalInstance.acquireTokenPopup({
+            scopes: [`api://${msalConfig.auth.clientId}/access_as_user`],
+            account: accounts[0]
+          });
+          return interactiveResponse.accessToken;
+        } catch (interactiveError) {
+          logToStorage('Interactive token acquisition failed', interactiveError);
+          return null;
+        }
       }
     }
     return null;

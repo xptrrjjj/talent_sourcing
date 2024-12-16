@@ -21,6 +21,6 @@ export const msalConfig: Configuration = {
 };
 
 export const msalRequest: PopupRequest = {
-  scopes: ['User.Read', 'profile', 'email'],
+  scopes: [`api://${msalConfig.auth.clientId}/access_as_user`],
   prompt: 'select_account'
 };
