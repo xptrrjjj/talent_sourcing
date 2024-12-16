@@ -64,48 +64,25 @@ const getMicrosoftToken = async () => {
     
     if (accounts.length > 0) {
       try {
-        // First try with Microsoft Graph scopes
-        const graphTokenResponse = await msalInstance.acquireTokenSilent({
+        // Get Microsoft token
+        const tokenResponse = await msalInstance.acquireTokenSilent({
           scopes: ['User.Read', 'profile', 'email', 'openid'],
           account: accounts[0]
         });
         
-        logToStorage('Graph token acquired', {
-          scopes: graphTokenResponse.scopes,
-          tokenType: graphTokenResponse.tokenType
+        // Exchange Microsoft token for backend token
+        const response = await axios.post(`${BASE_URL}/api/auth/microsoft/token`, {
+          microsoft_token: tokenResponse.accessToken
         });
 
-        // Now try to get token for our API
-        try {
-          const apiTokenResponse = await msalInstance.acquireTokenSilent({
-            scopes: [`api://${msalConfig.auth.clientId}/access_as_user`],
-            account: accounts[0]
-          });
-          
-          logToStorage('API token acquired', {
-            scopes: apiTokenResponse.scopes,
-            tokenType: apiTokenResponse.tokenType
-          });
-          
-          return apiTokenResponse.accessToken;
-        } catch (apiError) {
-          // If API token fails, use Graph token as fallback
-          logToStorage('Using Graph token as fallback', apiError);
-          return graphTokenResponse.accessToken;
+        if (response.data.access_token) {
+          // Store and return backend token
+          localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
+          return response.data.access_token;
         }
-      } catch (silentError) {
-        logToStorage('Silent token acquisition failed', silentError);
-        try {
-          // Try interactive as last resort
-          const interactiveResponse = await msalInstance.acquireTokenPopup({
-            scopes: ['User.Read', 'profile', 'email', 'openid'],
-            account: accounts[0]
-          });
-          return interactiveResponse.accessToken;
-        } catch (interactiveError) {
-          logToStorage('Interactive token acquisition failed', interactiveError);
-          return null;
-        }
+      } catch (error) {
+        logToStorage('Token acquisition/exchange failed', error);
+        return null;
       }
     }
     return null;
@@ -126,34 +103,26 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(async (config) => {
   logToStorage('Request interceptor start', { url: config.url });
   
+  // Always try stored token first
+  const storedToken = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
+  if (storedToken) {
+    logToStorage('Using stored token');
+    config.headers.Authorization = `Bearer ${storedToken}`;
+    return config;
+  }
+  
+  // If no stored token and using Microsoft auth, get new token
   if (isUsingMicrosoftAuth()) {
     const token = await getMicrosoftToken();
     if (token) {
-      logToStorage('Using Microsoft token', { tokenLength: token.length });
+      logToStorage('Using new Microsoft token');
       config.headers.Authorization = `Bearer ${token}`;
-      // Store token for future use
-      localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, token);
-    } else {
-      logToStorage('No Microsoft token available');
-      // Clear any stored tokens
-      localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
-      return handleAuthError(new Error('No Microsoft token available'));
-    }
-  } else {
-    const token = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
-    if (token) {
-      logToStorage('Using stored token', { tokenLength: token.length });
-      config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      logToStorage('No token found');
-      return handleAuthError(new Error('No token available'));
+      return config;
     }
   }
-  return config;
-}, (error) => {
-  logToStorage('Request interceptor error', error);
-  return Promise.reject(error);
+
+  logToStorage('No valid token available');
+  return handleAuthError(new Error('No valid token available'));
 });
 
 // Add response interceptor to handle token refresh
