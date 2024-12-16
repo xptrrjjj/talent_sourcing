@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { refreshAccessToken } from './auth';
-import { msalRequest } from '../../config/msal';
+import { msalRequest, msalConfig } from '../../config/msal';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { AUTH_STORAGE_KEYS } from '../../config/auth';
 import { getMsalInstance } from '../msal';
@@ -14,39 +14,39 @@ const isUsingMicrosoftAuth = () => {
   return hasMsalAccount;
 };
 
-// Fetch Microsoft Access Token
 const getMicrosoftToken = async () => {
-  console.log('[Auth] Fetching Microsoft token...');
   try {
     const msalInstance = await getMsalInstance();
     const accounts = msalInstance.getAllAccounts();
-    console.log('[Auth] Found MSAL accounts:', accounts);
+    console.log('[Auth] MSAL Accounts:', accounts);
 
     if (accounts.length > 0) {
+      // Acquire a token silently
       const tokenResponse = await msalInstance.acquireTokenSilent({
-        scopes: [`api://${msalRequest.scopes[0]}`],
+        scopes: [`${msalConfig.auth.clientId}/.default`], // Ensure this matches your API configuration
         account: accounts[0],
       });
-      console.log('[Auth] Microsoft token acquired:', tokenResponse.accessToken);
 
-      // Exchange Microsoft token for backend token
+      console.log('[Auth] MSAL Token Response:', tokenResponse);
+
+      // Send the token to the backend for validation or token exchange
       const response = await axios.post(`${BASE_URL}/api/auth/microsoft/token`, {
         microsoft_token: tokenResponse.accessToken,
       });
-      console.log('[Auth] Backend token response:', response.data);
 
-      const backendToken = response.data.access_token;
-      if (backendToken) {
-        localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, backendToken);
-        console.log('[Auth] Backend token stored successfully.');
-        return backendToken;
+      if (response.data.access_token) {
+        console.log('[Auth] Backend token acquired:', response.data.access_token);
+        localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
+        return response.data.access_token;
       }
     }
+    return null;
   } catch (error) {
     console.error('[Auth] Failed to acquire Microsoft token:', error);
+    return null;
   }
-  return null;
 };
+
 
 // Axios instance with interceptors
 export const apiClient = axios.create({
