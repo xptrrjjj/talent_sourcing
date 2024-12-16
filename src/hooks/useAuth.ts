@@ -14,9 +14,10 @@ export function useAuth() {
   useEffect(() => {
     const handleRedirectResponse = async () => {
       try {
+        await msalInstance.initialize();
         const response = await msalInstance.handleRedirectPromise();
+        
         if (response?.accessToken) {
-          // Get code from URL search params
           const urlParams = new URLSearchParams(window.location.search);
           const code = urlParams.get('code');
           
@@ -24,10 +25,21 @@ export function useAuth() {
             throw new Error('Authorization code not found');
           }
 
+          // Add logging
+          console.log('Sending to Microsoft callback:', {
+            code,
+            accessToken: response.accessToken,
+            account: response.account,
+            url: '/api/auth/microsoft/callback',
+            searchParams: window.location.search
+          });
+
           // Send code to backend
-          await apiClient.post('/api/auth/microsoft/callback', { code });
+          const callbackResponse = await apiClient.post('/api/auth/microsoft/callback', { code });
+          console.log('Callback response:', callbackResponse.data);
         }
       } catch (err: any) {
+        console.error('Microsoft callback error:', err);
         setError(err.message || 'Failed to handle Microsoft redirect');
       }
     };
