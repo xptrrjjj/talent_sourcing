@@ -21,9 +21,9 @@ import { Configuration, PopupRequest, LogLevel } from '@azure/msal-browser';
 
 export const msalConfig: Configuration = {
   auth: {
-    clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '',
-    authority: `https://login.microsoftonline.com/${import.meta.env.VITE_MICROSOFT_TENANT_ID || 'common'}`,
-    redirectUri: window.location.origin, // Ensure this matches the registered redirect URI in Azure
+    clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '', // Your App (Client) ID
+    authority: `https://login.microsoftonline.com/${import.meta.env.VITE_MICROSOFT_TENANT_ID || 'common'}`, // Tenant ID
+    redirectUri: window.location.origin, // Matches registered Redirect URI in Azure AD
   },
   cache: {
     cacheLocation: 'sessionStorage', // Use sessionStorage for better security
@@ -31,7 +31,7 @@ export const msalConfig: Configuration = {
   },
   system: {
     loggerOptions: {
-      logLevel: LogLevel.Verbose, // Enable detailed logs
+      logLevel: LogLevel.Verbose, // Enable detailed logs for debugging
       loggerCallback: (level, message) => {
         console.log(`[MSAL:${level}] ${message}`);
       },
@@ -39,6 +39,7 @@ export const msalConfig: Configuration = {
   },
 };
 
+// Updated loginRequest to request API-specific scopes for your application
 export const loginRequest: PopupRequest = {
-  scopes: ['User.Read', 'profile', 'email', 'offline_access'], // Ensure these scopes are granted in Azure AD
+  scopes: [`api://${import.meta.env.VITE_MICROSOFT_CLIENT_ID}/.default`], // App-specific scopes
 };
