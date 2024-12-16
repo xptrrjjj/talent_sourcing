@@ -34,7 +34,7 @@ export default defineConfig({
   },
   server: {
     open: true, // Automatically open the app in the browser during dev
-    port: 3000, // Specify a custom port for dev server
+    port: 5173, // Specify a custom port for dev server
     host: '0.0.0.0', // Allow access from external devices
     https: {
       key: fs.readFileSync('/home/ubuntu/key.pem'), // Use absolute path for key
