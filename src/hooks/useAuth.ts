@@ -20,22 +20,21 @@ export function useAuth() {
     setIsLoading(true);
     setError(null);
     try {
+      // Get token from Microsoft
       const response = await msalInstance.loginPopup(msalRequest);
       console.log('Microsoft login response:', {
         accessToken: response.accessToken,
         account: response.account,
         scopes: response.scopes
       });
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      
-      if (!code) {
-        throw new Error('Authorization code not found');
-      }
 
-      const callbackResponse = await apiClient.post('/api/auth/microsoft/callback', { code });
+      // Send the access token to our backend
+      const callbackResponse = await apiClient.post('/api/auth/microsoft/callback', {
+        access_token: response.accessToken,
+        account_id: response.account?.homeAccountId
+      });
       console.log('Callback response:', callbackResponse.data);
+      
     } catch (err: any) {
       console.error('Microsoft login error:', err);
       setError(err.message || 'Microsoft login failed');
