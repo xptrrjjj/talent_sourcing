@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin } from '../services/api/auth';
+import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types';
 
 interface UserContextType {
@@ -7,58 +7,54 @@ interface UserContextType {
   isLoading: boolean;
   error: string | null;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  loginWithMicrosoft: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
+  const auth = useAuth();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Check for existing session on mount
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
     const userData = localStorage.getItem('user_data');
-    
-    if (token && userData) {
+    if (userData) {
       try {
         setCurrentUser(JSON.parse(userData));
       } catch (err) {
         console.error('Failed to parse user data:', err);
         localStorage.removeItem('user_data');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
       }
     }
-    setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const user = await apiLogin(username, password);
-      setCurrentUser(user);
-      localStorage.setItem('user_data', JSON.stringify(user));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLogin = async (username: string, password: string) => {
+    const user = await auth.login(username, password);
+    setCurrentUser(user);
   };
 
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_data');
+  const handleMicrosoftLogin = async () => {
+    const user = await auth.loginWithMicrosoft();
+    setCurrentUser(user);
+  };
+
+  const handleLogout = async () => {
+    await auth.logout();
     setCurrentUser(null);
   };
 
   return (
-    <UserContext.Provider value={{ currentUser, isLoading, error, login, logout }}>
+    <UserContext.Provider
+      value={{
+        currentUser,
+        isLoading: auth.isLoading,
+        error: auth.error,
+        login: handleLogin,
+        loginWithMicrosoft: handleMicrosoftLogin,
+        logout: handleLogout
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

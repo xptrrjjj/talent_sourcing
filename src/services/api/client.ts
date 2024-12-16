@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { refreshAccessToken } from './auth';
 
-const BASE_URL = 'http://44.211.135.244:8000';
+const BASE_URL = 'https://44.211.135.244:8000';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

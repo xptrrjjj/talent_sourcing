@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@azure/msal-browser": "^3.10.0",
+    "@azure/msal-react": "^2.0.12",
     "@google/generative-ai": "^0.2.1",
     "@headlessui/react": "^1.7.18",
     "axios": "^1.6.7",

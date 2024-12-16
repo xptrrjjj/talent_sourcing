@@ -22,11 +22,43 @@ export async function login(username: string, password: string): Promise<User> {
     return {
       id: response.data.user.id.toString(),
       name: response.data.user.username,
-      email: `${response.data.user.username}@example.com` // Placeholder
+      email: `${response.data.user.username}@example.com`
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error(error.response?.data?.message || 'Login failed');
+    }
+    throw error;
+  }
+}
+
+export async function validateMicrosoftToken(token: string): Promise<User> {
+  try {
+    const response = await apiClient.post('/api/auth/federated/validate-token', {
+      provider: 'microsoft',
+      token
+    });
+
+    if (response.data.status === 'error' || !response.data.user) {
+      throw new Error(response.data.message || 'Microsoft login failed');
+    }
+
+    // Store tokens if provided
+    if (response.data.access_token) {
+      localStorage.setItem('access_token', response.data.access_token);
+    }
+    if (response.data.refresh_token) {
+      localStorage.setItem('refresh_token', response.data.refresh_token);
+    }
+
+    return {
+      id: response.data.user.id.toString(),
+      name: response.data.user.name || response.data.user.username,
+      email: response.data.user.email
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Microsoft login validation failed');
     }
     throw error;
   }
