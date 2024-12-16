@@ -12,21 +12,26 @@ export function useAuth() {
   useEffect(() => {
     const handleMsalResponse = async () => {
       try {
+        // Initialize MSAL first
+        await msalInstance.initialize();
+        
         const response = await msalInstance.handleRedirectPromise();
-        if (response) {
-          console.log('MSAL Response:', response);
-          const params = new URLSearchParams(window.location.search);
-          const code = params.get('code');
-          console.log('Auth Code:', code);
+        console.log('MSAL Response:', response);
 
-          if (code) {
-            // Send the code to the backend
-            const backendResponse = await apiClient.post('/api/auth/microsoft/callback', { code });
-            console.log('Backend Response:', backendResponse.data);
+        // Check if we have an account after redirect
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          const account = accounts[0];
+          console.log('Logged in account:', account);
 
+          // Get user info from backend
+          const backendResponse = await apiClient.get('/api/auth/microsoft/user');
+          console.log('Backend Response:', backendResponse.data);
+
+          if (backendResponse.data.user) {
+            localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(backendResponse.data.user));
             if (backendResponse.data.access_token) {
               localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, backendResponse.data.access_token);
-              localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(backendResponse.data.user));
             }
           }
         }
@@ -35,9 +40,6 @@ export function useAuth() {
         if (axios.isAxiosError(error)) {
           console.error('Response data:', error.response?.data);
         }
-      } finally {
-        // Clean up URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
       }
     };
 
@@ -45,7 +47,12 @@ export function useAuth() {
   }, [msalInstance]);
 
   const loginWithMicrosoft = async () => {
-    await msalInstance.loginRedirect(msalRequest);
+    try {
+      await msalInstance.initialize();
+      await msalInstance.loginRedirect(msalRequest);
+    } catch (error) {
+      console.error('Login error:', error);
+    }
   };
 
   return {
