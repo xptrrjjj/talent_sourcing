@@ -14,41 +14,47 @@ const isUsingMicrosoftAuth = () => {
   return hasMsalAccount;
 };
 
+// Get Microsoft Token and Exchange with Backend
 const getMicrosoftToken = async () => {
   try {
+    console.log('[Auth] Attempting to get Microsoft token...');
     const msalInstance = await getMsalInstance();
     const accounts = msalInstance.getAllAccounts();
     console.log('[Auth] MSAL Accounts:', accounts);
 
     if (accounts.length > 0) {
-      // Acquire a token silently
       const tokenResponse = await msalInstance.acquireTokenSilent({
-        scopes: [`${msalConfig.auth.clientId}/.default`], // Ensure this matches your API configuration
+        scopes: ['User.Read', 'profile', 'email', 'openid'],
         account: accounts[0],
       });
 
-      console.log('[Auth] MSAL Token Response:', tokenResponse);
+      console.log('[Auth] Microsoft Token acquired:', tokenResponse.accessToken);
 
-      // Send the token to the backend for validation or token exchange
-      const response = await axios.post(`${BASE_URL}/api/auth/microsoft/callback`, {
-        microsoft_token: tokenResponse.accessToken,
+      // Send Microsoft Token to Backend for Validation/Exchange
+      const backendResponse = await axios.post(`${BASE_URL}/api/auth/microsoft/callback`, {
+        code: tokenResponse.accessToken, // Exchange the Microsoft Token
       });
 
-      if (response.data.access_token) {
-        console.log('[Auth] Backend token acquired:', response.data.access_token);
-        localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
-        return response.data.access_token;
+      if (backendResponse.data.access_token) {
+        console.log('[Auth] Backend token received:', backendResponse.data.access_token);
+
+        // Save backend token locally
+        localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, backendResponse.data.access_token);
+        return backendResponse.data.access_token;
+      } else {
+        console.error('[Auth] Backend did not return an access token.');
       }
     }
+
+    console.warn('[Auth] No accounts found in MSAL instance.');
     return null;
   } catch (error) {
-    console.error('[Auth] Failed to acquire Microsoft token:', error);
+    console.error('[Auth] Error fetching Microsoft token:', error);
     return null;
   }
 };
 
-
-// Axios instance with interceptors
+// Axios Client with Token Handling
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -59,10 +65,10 @@ apiClient.interceptors.request.use(async (config) => {
   console.log('[API] Intercepting request to:', config.url);
 
   let token = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
-  console.log('[API] Stored token:', token);
+  console.log('[API] Existing Token:', token);
 
   if (!token && isUsingMicrosoftAuth()) {
-    console.log('[API] No stored token. Trying to fetch Microsoft token...');
+    console.log('[API] No token found. Fetching Microsoft token...');
     token = await getMicrosoftToken();
   }
 
@@ -92,7 +98,7 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      console.warn('[API] Handling 401 error - token refresh required.');
+      console.warn('[API] Handling 401 error - attempting token refresh.');
       originalRequest._retry = true;
 
       if (isUsingMicrosoftAuth()) {
@@ -114,7 +120,7 @@ apiClient.interceptors.response.use(
         }
       }
 
-      console.error('[API] Token refresh failed. Logging out user.');
+      console.error('[API] Token refresh failed. Clearing tokens.');
       localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
     }
