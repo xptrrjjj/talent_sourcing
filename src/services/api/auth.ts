@@ -32,12 +32,10 @@ export async function login(username: string, password: string): Promise<User> {
   }
 }
 
-export async function validateMicrosoftToken(token: string): Promise<User> {
+export async function validateMicrosoftToken(): Promise<User> {
   try {
-    const response = await apiClient.post('/api/auth/federated/validate-token', {
-      provider: 'microsoft',
-      token
-    });
+    // Make a request to the backend to retrieve user information after login
+    const response = await apiClient.get('/api/auth/microsoft/callback');
 
     if (response.data.status === 'error' || !response.data.user) {
       throw new Error(response.data.message || 'Microsoft login failed');
@@ -54,7 +52,7 @@ export async function validateMicrosoftToken(token: string): Promise<User> {
     return {
       id: response.data.user.id.toString(),
       name: response.data.user.name || response.data.user.username,
-      email: response.data.user.email
+      email: response.data.user.email,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -63,6 +61,7 @@ export async function validateMicrosoftToken(token: string): Promise<User> {
     throw error;
   }
 }
+
 
 export async function refreshAccessToken(): Promise<string> {
   const refreshToken = localStorage.getItem('refresh_token');
