@@ -127,11 +127,11 @@ apiClient.interceptors.response.use(
         }
       }
 
-      // For native login, just clear tokens and redirect to login
+      // For native login, clear tokens and use handleAuthError for delayed redirect
       console.error('[API] Authentication failed. Clearing tokens.');
       localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
-      window.location.href = '/login';
+      return handleAuthError(error);
     }
 
     return Promise.reject(error);
@@ -147,7 +147,17 @@ const handleAuthError = (error: any) => {
     });
   }
   
-  // Immediate redirect without delay
-  window.location.href = '/login';
+  // Add a 10-minute delay before redirect
+  const lastRedirect = localStorage.getItem('last_auth_redirect');
+  const now = Date.now();
+  const TEN_MINUTES = 10 * 60 * 1000; // 10 minutes in milliseconds
+  
+  if (!lastRedirect || (now - parseInt(lastRedirect)) > TEN_MINUTES) {
+    localStorage.setItem('last_auth_redirect', now.toString());
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 1000);
+  }
+  
   return Promise.reject(error);
 };
