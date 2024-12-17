@@ -37,8 +37,11 @@ export function useAuth() {
         }
       } catch (error: any) {
         console.error('[Auth] Error handling MSAL response:', error);
-        if (error.response) {
-          console.error('[Auth] Backend error details:', error.response.data);
+        if (error.response?.data) {
+          console.error('[Auth] Backend error details:', {
+            detail: error.response.data.detail,
+            raw: error.response.data
+          });
         }
       }
     };
