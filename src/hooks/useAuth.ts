@@ -4,6 +4,7 @@ import { apiClient } from '../services/api/client';
 import { AUTH_STORAGE_KEYS } from '../config/auth';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { login } from '../services/api/auth';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
@@ -76,7 +77,22 @@ export function useAuth() {
     }
   };
 
+  const loginWithCredentials = async (username: string, password: string) => {
+    try {
+      console.log('[Auth] Attempting native login...');
+      const response = await login(username, password);
+      console.log('[Auth] Login successful:', response);
+      
+      // Force navigation and page reload after successful login
+      window.location.href = '/';
+    } catch (error) {
+      console.error('[Auth] Native login error:', error);
+      throw error;
+    }
+  };
+
   return {
     loginWithMicrosoft,
+    login: loginWithCredentials,
   };
 }

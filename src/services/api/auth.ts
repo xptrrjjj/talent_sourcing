@@ -4,16 +4,29 @@ import type { User, AuthResponse } from '../../types';
 import { AUTH_STORAGE_KEYS } from '../../config/auth';
 
 export const login = async (username: string, password: string) => {
-  const response = await apiClient.post('/api/auth/login', { username, password });
-  
-  if (response.data.access_token) {
-    localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
-    if (response.data.refresh_token) {
-      localStorage.setItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN, response.data.refresh_token);
+  try {
+    const response = await apiClient.post('/api/auth/login/', {
+      username,
+      password,
+      app_id: 'talent_sourcing_platform'
+    });
+
+    if (response.data.status === 'success' && response.data.access_token) {
+      localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
+      if (response.data.refresh_token) {
+        localStorage.setItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN, response.data.refresh_token);
+      }
+      if (response.data.user) {
+        localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
+      }
+      return response.data;
     }
+
+    throw new Error(response.data.message || 'Login failed');
+  } catch (error: any) {
+    console.error('[Auth] Login error:', error);
+    throw new Error(error.response?.data?.message || 'Login failed');
   }
-  
-  return response.data;
 };
 
 export async function validateMicrosoftToken(): Promise<User> {
