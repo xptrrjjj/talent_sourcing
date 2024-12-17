@@ -114,7 +114,7 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      console.warn('[API] Handling 401 error - attempting token refresh.');
+      console.warn('[API] Handling 401 error');
       originalRequest._retry = true;
 
       if (isUsingMicrosoftAuth()) {
@@ -125,20 +125,13 @@ apiClient.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(originalRequest);
         }
-      } else {
-        console.log('[API] Refreshing native token...');
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          console.log('[API] Retrying request with new native token.');
-          localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, newToken);
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return apiClient(originalRequest);
-        }
       }
 
-      console.error('[API] Token refresh failed. Clearing tokens.');
+      // For native login, just clear tokens and redirect to login
+      console.error('[API] Authentication failed. Clearing tokens.');
       localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
+      window.location.href = '/login';
     }
 
     return Promise.reject(error);
