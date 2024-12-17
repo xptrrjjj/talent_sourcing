@@ -7,7 +7,6 @@ import { useEffect } from 'react';
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
 
-  // Handle MSAL redirect response
   useEffect(() => {
     const handleMsalResponse = async () => {
       try {
@@ -18,9 +17,9 @@ export function useAuth() {
         if (response?.account && response?.idToken) {
           console.log('[Auth] Logged in MSAL Account:', response.account);
     
-          // Exchange authorization code (response.idToken) for backend token
+          // Exchange idToken for backend token
           const backendResponse = await apiClient.post('/api/auth/microsoft/callback', {
-            code: response.idToken, // Send the ID token as the 'code'
+            microsoft_token: response.idToken, // Consistent naming
           });
           console.log('[Auth] Backend Response:', backendResponse.data);
     
@@ -35,10 +34,10 @@ export function useAuth() {
         console.error('[Auth] Error handling MSAL response:', error);
       }
     };
-    
-
+  
     handleMsalResponse();
   }, [msalInstance]);
+  
 
   const loginWithMicrosoft = async () => {
     try {

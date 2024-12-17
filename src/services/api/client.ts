@@ -32,7 +32,7 @@ const getMicrosoftToken = async () => {
 
       // Send the token to the backend for validation or token exchange
       const response = await axios.post(`${BASE_URL}/api/auth/microsoft/callback`, {
-        microsoft_token: tokenResponse.idToken, // Pass the `idToken` instead of accessToken
+        microsoft_token: tokenResponse.idToken, // Use consistent naming
       });
 
       if (response.data.access_token) {
@@ -47,6 +47,7 @@ const getMicrosoftToken = async () => {
     return null;
   }
 };
+
 
 
 // Axios Client with Token Handling
