@@ -11,6 +11,12 @@ export const login = async (username: string, password: string) => {
       app_id: 'talent_sourcing_platform'
     });
 
+    console.log('[Auth] Login response:', response.data);
+
+    if (response.data.status === 'error') {
+      throw new Error(response.data.message);
+    }
+
     if (response.data.status === 'success' && response.data.access_token) {
       localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
       if (response.data.refresh_token) {
@@ -22,10 +28,13 @@ export const login = async (username: string, password: string) => {
       return response.data;
     }
 
-    throw new Error(response.data.message || 'Login failed');
+    throw new Error('Invalid response from server');
   } catch (error: any) {
     console.error('[Auth] Login error:', error);
-    throw new Error(error.response?.data?.message || 'Login failed');
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
   }
 };
 
