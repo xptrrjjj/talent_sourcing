@@ -99,10 +99,9 @@ apiClient.interceptors.request.use(async (config) => {
     config.headers.Authorization = `Bearer ${token}`;
   } else {
     console.warn('[API] No valid token found. Request may fail.');
-    return handleAuthError(new Error('No valid token available'));
   }
 
-  return config;
+  return config;  // Always return config, let the request proceed
 });
 
 // Response Interceptor: Handle 401 Errors
@@ -135,9 +134,9 @@ apiClient.interceptors.response.use(
       }
 
       // For native login, clear tokens and use handleAuthError for delayed redirect
-      console.error('[API] Authentication failed. Clearing tokens.');
-      localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
+      //console.error('[API] Authentication failed. Clearing tokens.');
+      //localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
+      //localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
       return handleAuthError(error);
     }
 
