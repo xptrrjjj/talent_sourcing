@@ -3,6 +3,7 @@ import { msalRequest } from '../config/msal';
 import { apiClient } from '../services/api/client';
 import { AUTH_STORAGE_KEYS } from '../config/auth';
 import { useEffect } from 'react';
+import { login } from '../services/api/auth';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
