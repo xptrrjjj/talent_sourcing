@@ -31,7 +31,7 @@ const getMicrosoftToken = async () => {
       console.log('[Auth] Sending access token to backend');
 
       const response = await axios.post(`${BASE_URL}/api/auth/microsoft/callback`, {
-        access_token: tokenResponse.accessToken,
+        microsoft_token: tokenResponse.accessToken,
       });
 
       if (response.data.access_token) {
