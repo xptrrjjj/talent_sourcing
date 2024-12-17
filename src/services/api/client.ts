@@ -80,6 +80,12 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(async (config) => {
   console.log('[API] Intercepting request to:', config.url);
 
+  // Skip token for login endpoints
+  if (config.url?.includes('/api/auth/login/')) {
+    console.log('[API] Skipping token for login endpoint');
+    return config;
+  }
+
   let token = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
   console.log('[API] Existing Token:', token);
 
@@ -89,10 +95,11 @@ apiClient.interceptors.request.use(async (config) => {
   }
 
   if (token) {
-    console.log('[API] Attaching token to request:', token);
+    console.log('[API] Attaching token to request');
     config.headers.Authorization = `Bearer ${token}`;
   } else {
     console.warn('[API] No valid token found. Request may fail.');
+    return handleAuthError(new Error('No valid token available'));
   }
 
   return config;
