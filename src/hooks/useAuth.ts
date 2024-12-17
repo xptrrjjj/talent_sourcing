@@ -101,33 +101,43 @@ import { useMsal } from '@azure/msal-react';
 import { msalRequest } from '../config/msal';
 import { apiClient } from '../services/api/client';
 import { AUTH_ROUTES, AUTH_SCOPES } from '../services/auth/constants';
-import { storeAuthData } from '../services/auth/storage';
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { storeAuthData, getStoredToken } from '../services/auth/storage';
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { login } from '../services/api/auth';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
+
+  const handleAuthSuccess = useCallback((token: string, user: any) => {
+    storeAuthData(token, user);
+    // Only navigate if we're on the login page
+    if (location.pathname === AUTH_ROUTES.LOGIN) {
+      navigate(AUTH_ROUTES.HOME, { replace: true });
+    }
+  }, [navigate, location]);
 
   useEffect(() => {
     let mounted = true;
 
     const handleMsalResponse = async () => {
-      if (isProcessingAuth) return;
-
+      // Skip if we already have a valid token
+      if (getStoredToken()) return;
+      
       try {
-        setIsProcessingAuth(true);
         const response = await msalInstance.handleRedirectPromise();
         
         if (response?.account) {
+          setIsProcessingAuth(true);
           const tokenResponse = await msalInstance.acquireTokenSilent({
             scopes: AUTH_SCOPES,
             account: response.account
           });
 
-          if (tokenResponse.accessToken) {
+          if (tokenResponse.accessToken && mounted) {
             const backendResponse = await apiClient.post('/api/auth/microsoft/callback', {
               microsoft_token: tokenResponse.accessToken,
               account: {
@@ -137,17 +147,15 @@ export function useAuth() {
               }
             });
 
-            if (backendResponse.data.access_token && mounted) {
-              storeAuthData(
+            if (backendResponse.data.access_token) {
+              handleAuthSuccess(
                 backendResponse.data.access_token,
                 backendResponse.data.user
               );
-              navigate(AUTH_ROUTES.HOME, { replace: true });
-              return;
             }
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('[Auth] Error handling MSAL response:', error);
       } finally {
         if (mounted) {
@@ -158,7 +166,7 @@ export function useAuth() {
   
     handleMsalResponse();
     return () => { mounted = false; };
-  }, [msalInstance, navigate]);
+  }, [msalInstance, handleAuthSuccess]);
 
   const loginWithMicrosoft = async () => {
     try {
@@ -177,8 +185,7 @@ export function useAuth() {
       const response = await login(username, password);
       
       if (response.access_token && response.user) {
-        storeAuthData(response.access_token, response.user);
-        navigate(AUTH_ROUTES.HOME, { replace: true });
+        handleAuthSuccess(response.access_token, response.user);
       }
       
       return response;

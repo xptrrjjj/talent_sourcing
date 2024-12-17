@@ -78,6 +78,7 @@ import type { User } from '../types';
 
 interface UserContextType {
   currentUser: User | null;
+  isInitializing: boolean;
   isLoading: boolean;
   error: string | null;
   login: (username: string, password: string) => Promise<void>;
@@ -91,18 +92,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const initializeUser = () => {
-      const user = getStoredUser();
-      if (user) {
-        setCurrentUser(user);
+      try {
+        const user = getStoredUser();
+        if (user) {
+          setCurrentUser(user);
+        }
+      } catch (error) {
+        console.error('Failed to initialize user:', error);
+      } finally {
+        setIsInitializing(false);
       }
-      setIsInitialized(true);
     };
 
-    initializeUser();
+    // Small delay to prevent flash of loading state
+    const timer = setTimeout(initializeUser, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleLogin = async (username: string, password: string) => {
@@ -120,14 +128,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     navigate(AUTH_ROUTES.LOGIN, { replace: true });
   };
 
-  if (!isInitialized) {
-    return null; // Return null instead of loading screen
-  }
-
   return (
     <UserContext.Provider
       value={{
         currentUser,
+        isInitializing,
         isLoading: auth.isProcessingAuth,
         error: null,
         login: handleLogin,

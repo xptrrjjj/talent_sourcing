@@ -23,14 +23,14 @@ import React from 'react';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { useUserContext } from './contexts/UserContext';
-import { LoadingOverlay } from './components/LoadingOverlay';
+import { AuthLoader } from './components/auth/AuthLoader';
 
 export default function App() {
-  const { currentUser, isLoading } = useUserContext();
+  const { currentUser, isInitializing } = useUserContext();
 
-  // Only show loading during actual auth operations, not initial load
-  if (isLoading && currentUser === null) {
-    return <LoadingOverlay message="Authenticating..." />;
+  // Only show loader during initial app load
+  if (isInitializing) {
+    return <AuthLoader />;
   }
 
   if (!currentUser) {
