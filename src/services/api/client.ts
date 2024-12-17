@@ -28,7 +28,7 @@ const getMicrosoftToken = async () => {
       });
 
       console.log('[Auth] MSAL Token Response:', tokenResponse);
-      console.log('[Auth] Sending access token to backend');
+      console.log('[Auth] Sending access token to backend', tokenResponse.idToken);
 
       const response = await axios.post(`${BASE_URL}/api/auth/microsoft/callback`, {
         microsoft_token: tokenResponse.idToken,
