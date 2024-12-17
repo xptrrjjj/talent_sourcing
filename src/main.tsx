@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MsalProvider } from '@azure/msal-react';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { UserProvider } from './contexts/UserContext';
 import './index.css';
@@ -11,10 +12,12 @@ const msalInstance = await getMsalInstance();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MsalProvider instance={msalInstance}>
-      <UserProvider>
-        <App />
-      </UserProvider>
-    </MsalProvider>
+    <BrowserRouter>
+      <MsalProvider instance={msalInstance}>
+        <UserProvider>
+          <App />
+        </UserProvider>
+      </MsalProvider>
+    </BrowserRouter>
   </StrictMode>
 );
