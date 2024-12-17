@@ -34,15 +34,24 @@ export function useAuth() {
           console.log('[Auth] Backend Response:', backendResponse.data);
     
           if (backendResponse.data.access_token) {
+            console.log('[Auth] Storing tokens and navigating...');
             localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, backendResponse.data.access_token);
             localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(backendResponse.data.user));
             
-            // Navigate to home page after successful login
-            navigate('/');
+            // Force navigation and page reload
+            window.location.href = '/';
+            return; // Stop execution after redirect
           }
-        } else if (window.location.pathname === '/login' && localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN)) {
-          // If we're on login page but have a token, redirect to home
-          navigate('/');
+        }
+
+        // Check if we should redirect from login page
+        const hasToken = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
+        const isLoginPage = window.location.pathname === '/login';
+        console.log('[Auth] Path check:', { hasToken, isLoginPage });
+
+        if (hasToken && isLoginPage) {
+          console.log('[Auth] Redirecting from login page...');
+          window.location.href = '/';
         }
       } catch (error: any) {
         console.error('[Auth] Error handling MSAL response:', error);
