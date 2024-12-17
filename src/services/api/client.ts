@@ -45,11 +45,17 @@ const getMicrosoftToken = async () => {
     console.error('[Auth] Error fetching Microsoft token:', error);
     if (error.response?.data) {
       console.error('[Auth] Backend error details:', {
-        detail: error.response.data.detail,
-        raw: error.response.data,
+        detail: error.response?.data?.detail,
+        raw: error.response?.data,
         request: {
-          url: error.config.url,
-          data: error.config.data
+          url: error.config?.url,
+          data: JSON.parse(error.config?.data || '{}'),
+          headers: error.config?.headers
+        },
+        response: {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data
         }
       });
     }

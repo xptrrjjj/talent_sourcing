@@ -24,7 +24,13 @@ export function useAuth() {
     
           // Exchange access token for backend token
           const backendResponse = await apiClient.post('/api/auth/microsoft/callback', {
-            access_token: tokenResponse.accessToken, // Changed from idToken to accessToken
+            access_token: tokenResponse.accessToken,
+            id_token: tokenResponse.idToken,
+            account: {
+              username: response.account.username,
+              name: response.account.name,
+              email: response.account.username
+            }
           });
           console.log('[Auth] Backend Response:', backendResponse.data);
     
