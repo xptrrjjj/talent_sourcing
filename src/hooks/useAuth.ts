@@ -100,7 +100,8 @@
 import { useMsal } from '@azure/msal-react';
 import { msalRequest } from '../config/msal';
 import { apiClient } from '../services/api/client';
-import { AUTH_STORAGE_KEYS } from '../config/auth';
+import { AUTH_ROUTES, AUTH_SCOPES } from '../services/auth/constants';
+import { storeAuthData } from '../services/auth/storage';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api/auth';
@@ -111,6 +112,8 @@ export function useAuth() {
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     const handleMsalResponse = async () => {
       if (isProcessingAuth) return;
 
@@ -120,7 +123,7 @@ export function useAuth() {
         
         if (response?.account) {
           const tokenResponse = await msalInstance.acquireTokenSilent({
-            scopes: ['User.Read', 'profile', 'email', 'openid'],
+            scopes: AUTH_SCOPES,
             account: response.account
           });
 
@@ -134,58 +137,56 @@ export function useAuth() {
               }
             });
 
-            if (backendResponse.data.access_token) {
-              localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, backendResponse.data.access_token);
-              localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(backendResponse.data.user));
-              
-              // Use replace instead of push to prevent back button issues
-              window.location.replace('/');
+            if (backendResponse.data.access_token && mounted) {
+              storeAuthData(
+                backendResponse.data.access_token,
+                backendResponse.data.user
+              );
+              navigate(AUTH_ROUTES.HOME, { replace: true });
               return;
             }
           }
         }
-
-        // Check if we should redirect from login page
-        const hasToken = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
-        const isLoginPage = window.location.pathname === '/login';
-
-        if (hasToken && isLoginPage) {
-          window.location.replace('/');
-        }
       } catch (error: any) {
         console.error('[Auth] Error handling MSAL response:', error);
-        if (error.response?.data) {
-          console.error('[Auth] Backend error details:', error.response.data);
-        }
       } finally {
-        setIsProcessingAuth(false);
+        if (mounted) {
+          setIsProcessingAuth(false);
+        }
       }
     };
   
     handleMsalResponse();
+    return () => { mounted = false; };
   }, [msalInstance, navigate]);
 
   const loginWithMicrosoft = async () => {
     try {
+      setIsProcessingAuth(true);
       await msalInstance.loginRedirect(msalRequest);
     } catch (error) {
       console.error('[Auth] Microsoft login error:', error);
+      setIsProcessingAuth(false);
       throw error;
     }
   };
 
   const loginWithCredentials = async (username: string, password: string) => {
     try {
+      setIsProcessingAuth(true);
       const response = await login(username, password);
       
-      if (response.access_token) {
-        window.location.replace('/');
+      if (response.access_token && response.user) {
+        storeAuthData(response.access_token, response.user);
+        navigate(AUTH_ROUTES.HOME, { replace: true });
       }
       
       return response;
     } catch (error) {
       console.error('[Auth] Native login error:', error);
       throw error;
+    } finally {
+      setIsProcessingAuth(false);
     }
   };
 

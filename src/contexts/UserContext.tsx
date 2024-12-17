@@ -71,6 +71,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { getStoredUser, clearAuthData } from '../services/auth/storage';
+import { AUTH_ROUTES } from '../services/auth/constants';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../types';
 
 interface UserContextType {
@@ -86,19 +89,15 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const initializeUser = () => {
-      const userData = localStorage.getItem('user_data');
-      if (userData) {
-        try {
-          setCurrentUser(JSON.parse(userData));
-        } catch (err) {
-          console.error('Failed to parse user data:', err);
-          localStorage.removeItem('user_data');
-        }
+      const user = getStoredUser();
+      if (user) {
+        setCurrentUser(user);
       }
       setIsInitialized(true);
     };
@@ -116,16 +115,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleLogout = async () => {
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    clearAuthData();
     setCurrentUser(null);
-    window.location.replace('/login');
+    navigate(AUTH_ROUTES.LOGIN, { replace: true });
   };
 
-  // Don't render children until we've checked for existing user data
   if (!isInitialized) {
-    return null;
+    return null; // Return null instead of loading screen
   }
 
   return (
