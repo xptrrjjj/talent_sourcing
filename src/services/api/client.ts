@@ -23,19 +23,19 @@ const getMicrosoftToken = async () => {
 
     if (accounts.length > 0) {
       const tokenResponse = await msalInstance.acquireTokenSilent({
-        scopes: ['openid', 'profile', 'User.Read'],
+        scopes: ['User.Read', 'profile', 'email', 'openid'],
         account: accounts[0],
       });
 
       console.log('[Auth] MSAL Token Response:', tokenResponse);
-      console.log('[Auth] Sending idToken to backend:', tokenResponse.idToken); // Log the token
+      console.log('[Auth] Sending access token to backend');
 
       const response = await axios.post(`${BASE_URL}/api/auth/microsoft/callback`, {
-        microsoft_token: tokenResponse.idToken,
+        access_token: tokenResponse.accessToken,
       });
 
       if (response.data.access_token) {
-        console.log('[Auth] Backend token acquired:', response.data.access_token);
+        console.log('[Auth] Backend token acquired');
         localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.data.access_token);
         return response.data.access_token;
       }
