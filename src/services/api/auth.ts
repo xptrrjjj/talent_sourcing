@@ -74,7 +74,7 @@ export const refreshAccessToken = async () => {
     throw new Error('No refresh token available');
   }
 
-  const response = await apiClient.post('/api/auth/refresh', {
+  const response = await apiClient.post('/api/auth/tokens/token/refresh', {
     refresh_token: refreshToken
   });
 
