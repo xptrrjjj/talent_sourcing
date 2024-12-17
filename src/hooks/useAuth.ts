@@ -30,7 +30,7 @@ export function useAuth() {
         } else {
           console.error('[Auth] No account or idToken in MSAL response.');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[Auth] Error handling MSAL response:', error);
       }
     };

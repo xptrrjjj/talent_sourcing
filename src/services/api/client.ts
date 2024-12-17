@@ -22,17 +22,16 @@ const getMicrosoftToken = async () => {
     console.log('[Auth] MSAL Accounts:', accounts);
 
     if (accounts.length > 0) {
-      // Acquire a token silently
       const tokenResponse = await msalInstance.acquireTokenSilent({
-        scopes: ['openid', 'profile', 'User.Read'], // Ensure these match your Azure AD app
+        scopes: ['openid', 'profile', 'User.Read'],
         account: accounts[0],
       });
 
       console.log('[Auth] MSAL Token Response:', tokenResponse);
+      console.log('[Auth] Sending idToken to backend:', tokenResponse.idToken); // Log the token
 
-      // Send the token to the backend for validation or token exchange
       const response = await axios.post(`${BASE_URL}/api/auth/microsoft/callback`, {
-        microsoft_token: tokenResponse.idToken, // Use consistent naming
+        microsoft_token: tokenResponse.idToken,
       });
 
       if (response.data.access_token) {
@@ -42,8 +41,11 @@ const getMicrosoftToken = async () => {
       }
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Auth] Error fetching Microsoft token:', error);
+    if (error.response) {
+      console.error('[Auth] Error response from backend:', error.response.data);
+    }
     return null;
   }
 };
