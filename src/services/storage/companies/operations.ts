@@ -1,6 +1,7 @@
-import type { Company } from '../../types';
-import { createRecord, retrieveRecords } from '../api/datastore/operations';
-import { APIError } from '../errors';
+import type { Company } from '../../../types';
+import { createRecord, retrieveRecords } from '../../api/datastore';
+import { APIError } from '../../errors';
+import { validateCompanyData, mapCompanyRecord } from './validation';
 
 export async function getCompanies(): Promise<Company[]> {
   try {
@@ -11,23 +12,8 @@ export async function getCompanies(): Promise<Company[]> {
     }
 
     return response
-      .filter(record => {
-        return record && 
-               record.data && 
-               !record.data.deleted &&
-               record.data.name &&
-               record.data.contactName;
-      })
-      .map(record => ({
-        id: record.record_id,
-        name: record.data.name,
-        website: record.data.website || '',
-        contactName: record.data.contactName,
-        source: record.data.source || '',
-        onshoreLocation: record.data.onshoreLocation || '',
-        createdAt: record.data.createdAt || record.created_at,
-        updatedAt: record.data.updatedAt || record.updated_at
-      }));
+      .filter(validateCompanyData)
+      .map(mapCompanyRecord);
   } catch (error) {
     console.error('Failed to fetch companies:', error);
     return [];

@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, Users, PlusCircle } from 'lucide-react';
 import clsx from 'clsx';
+import Icon from './Icon.png';
 
 interface Props {
   activeTab: 'create' | 'saved' | 'pipeline';
@@ -22,8 +23,8 @@ export function DashboardLayout({ activeTab, onTabChange, children }: Props) {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <img 
-                src="https://magentiq.com/wp-content/uploads/2024/01/magentiq-logo.png" 
-                alt="Magentiq Logo" 
+                src={Icon} 
+                alt="2bv" 
                 className="h-8 w-auto"
               />
             </div>

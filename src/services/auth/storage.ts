@@ -19,10 +19,21 @@ export function getStoredToken(): string | null {
 export function storeAuthData(token: string, user: User): void {
   localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, token);
   localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+  // Set a flag in sessionStorage to handle redirect after auth
+  sessionStorage.setItem('auth_success', 'true');
+  console.log('Auth data stored successfully');
 }
 
 export function clearAuthData(): void {
   localStorage.removeItem(AUTH_STORAGE_KEYS.USER_DATA);
   localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
   localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
+  sessionStorage.removeItem('auth_success');
+}
+
+export function isAuthenticated(): boolean {
+  const hasToken = !!getStoredToken();
+  const hasUser = !!getStoredUser();
+  console.log('Auth check:', { hasToken, hasUser });
+  return hasToken && hasUser;
 }

@@ -28,14 +28,11 @@ import { AuthLoader } from './components/auth/AuthLoader';
 export default function App() {
   const { currentUser, isInitializing } = useUserContext();
 
-  // Only show loader during initial app load
+  // Show loader during initial auth check
   if (isInitializing) {
     return <AuthLoader />;
   }
 
-  if (!currentUser) {
-    return <Login />;
-  }
-
-  return <Dashboard />;
+  // Render login or dashboard based on auth state
+  return currentUser ? <Dashboard /> : <Login />;
 }

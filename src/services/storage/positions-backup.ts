@@ -1,10 +1,16 @@
 import type { SavedPosition } from '../../types';
-import { createRecord, appendToRecord, retrieveRecords } from '../api/datastore';
+import { createRecord, retrieveRecords, appendToRecord } from '../api/datastore/operations';
+import { APIError } from '../errors';
 
 export async function getSavedPositions(): Promise<SavedPosition[]> {
   try {
-    const records = await retrieveRecords({ type: 'position' });
-    return records
+    const response = await retrieveRecords({ type: 'position' });
+    
+    if (!Array.isArray(response)) {
+      throw new APIError('Invalid response format from datastore');
+    }
+
+    return response
       .filter(record => record.data && !record.data.deleted)
       .map(record => ({
         ...record.data,
@@ -35,10 +41,7 @@ export async function deletePosition(id: string): Promise<void> {
   try {
     await createRecord(id, {
       type: 'position',
-      data: {
-        deleted: true,
-        updatedAt: new Date().toISOString()
-      }
+      data: { deleted: true }
     });
   } catch (error) {
     console.error('Failed to delete position:', error);
@@ -46,7 +49,10 @@ export async function deletePosition(id: string): Promise<void> {
   }
 }
 
-export async function updatePositionStatus(id: string, status: SavedPosition['status']): Promise<void> {
+export async function updatePositionStatus(
+  id: string, 
+  status: SavedPosition['status']
+): Promise<void> {
   try {
     await appendToRecord(id, {
       type: 'position',

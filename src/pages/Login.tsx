@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useUserContext } from '../contexts/UserContext';
 import { MicrosoftLoginButton } from '../components/auth/MicrosoftLoginButton';
 import { LoginForm } from '../components/auth/LoginForm';
+import { useAuthRedirect } from '../services/auth/hooks/useAuthRedirect';
 
 export function Login() {
   const { login, loginWithMicrosoft, isLoading, error } = useUserContext();
   const [formError, setFormError] = useState<string | null>(null);
+  
+  // Handle auth redirects
+  useAuthRedirect();
 
   const handleSubmit = async (username: string, password: string) => {
     setFormError(null);
@@ -24,15 +28,6 @@ export function Login() {
       setFormError(err instanceof Error ? err.message : 'Microsoft login failed');
     }
   };
-
-  useEffect(() => {
-    const logs = JSON.parse(localStorage.getItem('auth_debug_logs') || '[]');
-    if (logs.length > 0) {
-      console.log('Auth Debug Logs:', logs);
-      // Clear logs after viewing
-      localStorage.removeItem('auth_debug_logs');
-    }
-  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -54,6 +49,7 @@ export function Login() {
             <MicrosoftLoginButton
               onClick={handleMicrosoftLogin}
               disabled={isLoading}
+              isLoading={isLoading}
             />
 
             <div className="relative">
