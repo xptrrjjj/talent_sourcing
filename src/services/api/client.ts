@@ -28,10 +28,10 @@ const getMicrosoftToken = async () => {
       });
 
       console.log('[Auth] MSAL Token Response:', tokenResponse);
-      console.log('[Auth] Sending access token to backend', tokenResponse.idToken);
+      console.log('[Auth] Sending access token to backend', tokenResponse.accessToken);
 
       const response = await axios.post(`${BASE_URL}/api/auth/microsoft/callback`, {
-        microsoft_token: tokenResponse.idToken,
+        microsoft_token: tokenResponse.accessToken,
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -144,3 +144,17 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+const handleAuthError = (error: any) => {
+  console.error('[Auth] Error occurred:', error);
+  if (error.response?.data) {
+    console.error('[Auth] Error details:', {
+      detail: error.response.data.detail,
+      raw: error.response.data
+    });
+  }
+  
+  // Immediate redirect without delay
+  window.location.href = '/login';
+  return Promise.reject(error);
+};
