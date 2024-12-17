@@ -3,10 +3,11 @@ import { msalRequest } from '../config/msal';
 import { apiClient } from '../services/api/client';
 import { AUTH_STORAGE_KEYS } from '../config/auth';
 import { useEffect } from 'react';
-import { login } from '../services/api/auth';
+import { useNavigate } from 'react-router-dom';
 
 export function useAuth() {
   const { instance: msalInstance } = useMsal();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleMsalResponse = async () => {
@@ -16,14 +17,12 @@ export function useAuth() {
         console.log('[Auth] MSAL Redirect Response:', response);
     
         if (response?.account) {
-          // Get access token for backend
           const tokenResponse = await msalInstance.acquireTokenSilent({
             scopes: ['User.Read', 'profile', 'email', 'openid'],
             account: response.account
           });
           console.log('[Auth] Access Token Response:', tokenResponse);
     
-          // Exchange access token for backend token
           const backendResponse = await apiClient.post('/api/auth/microsoft/callback', {
             microsoft_token: tokenResponse.accessToken,
             account: {
@@ -37,9 +36,13 @@ export function useAuth() {
           if (backendResponse.data.access_token) {
             localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, backendResponse.data.access_token);
             localStorage.setItem(AUTH_STORAGE_KEYS.USER_DATA, JSON.stringify(backendResponse.data.user));
+            
+            // Navigate to home page after successful login
+            navigate('/');
           }
-        } else {
-          console.error('[Auth] No account in MSAL response.');
+        } else if (window.location.pathname === '/login' && localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN)) {
+          // If we're on login page but have a token, redirect to home
+          navigate('/');
         }
       } catch (error: any) {
         console.error('[Auth] Error handling MSAL response:', error);
@@ -53,8 +56,7 @@ export function useAuth() {
     };
   
     handleMsalResponse();
-  }, [msalInstance]);
-  
+  }, [msalInstance, navigate]);
 
   const loginWithMicrosoft = async () => {
     try {
