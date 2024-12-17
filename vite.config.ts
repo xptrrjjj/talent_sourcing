@@ -37,8 +37,8 @@ export default defineConfig({
     port: 443, // Specify a custom port for dev server
     host: '0.0.0.0', // Allow access from external devices
     https: {
-      key: fs.readFileSync('/home/ubuntu/2bvkey.pem'), // Use absolute path for key
-      cert: fs.readFileSync('/home/ubuntu/2bvcrt.pem'), // Use absolute path for cert
+      key: fs.readFileSync('/home/ubuntu/2bvcrt.pem'), // Use absolute path for key
+      cert: fs.readFileSync('/home/ubuntu/2bvkey.pem'), // Use absolute path for cert
     },
   },
 });
