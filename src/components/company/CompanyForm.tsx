@@ -1,17 +1,23 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import type { CompanyFormData } from '../../types';
+import type { CompanyFormData, Company } from '../../types';
 import { FormField } from '../form/FormField';
 
 interface Props {
   onSubmit: (data: CompanyFormData) => void;
   onCancel: () => void;
-  initialData?: CompanyFormData;
+  initialData?: Company;
 }
 
 export function CompanyForm({ onSubmit, onCancel, initialData }: Props) {
   const { register, handleSubmit } = useForm<CompanyFormData>({
-    defaultValues: initialData
+    defaultValues: initialData ? {
+      companyName: initialData.name,
+      website: initialData.website,
+      contactName: initialData.contactName,
+      source: initialData.source,
+      onshoreLocation: initialData.onshoreLocation
+    } : undefined
   });
 
   return (
@@ -70,7 +76,7 @@ export function CompanyForm({ onSubmit, onCancel, initialData }: Props) {
           type="submit"
           className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-magentiq hover:bg-magentiq/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-magentiq"
         >
-          Save Company
+          {initialData ? 'Update Company' : 'Save Company'}
         </button>
       </div>
     </form>
