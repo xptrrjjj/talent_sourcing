@@ -8,13 +8,16 @@ import { ApplicationStages } from '../components/ApplicationStages';
 import { AnalysisResult } from '../components/AnalysisResult';
 import { EditableJobDescription } from '../components/EditableJobDescription';
 import { RoleActions } from '../components/role/RoleActions';
-import { LoadingOverlay } from '../components/LoadingOverlay';
+import { LoadingOverlay } from '../components/ui/LoadingOverlay';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { analyzePosition } from '../services/analysis';
 import { useCompanies } from '../hooks/companies';
 import { usePositions } from '../hooks/positions';
+import { useUserContext } from '../contexts/UserContext';
 import type { JobFormData, TalentAnalysis, Company, CompanyFormData } from '../types';
 
 export function Dashboard() {
+  const { currentUser } = useUserContext();
   const [activeTab, setActiveTab] = useState<'create' | 'saved' | 'pipeline'>('create');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,11 +45,14 @@ export function Dashboard() {
 
   const handleCompanyFormSubmit = async (data: CompanyFormData) => {
     try {
+      setIsSaving(true);
       await handleCompanySubmit(data, companyToEdit?.id);
       setShowCompanyForm(false);
       setCompanyToEdit(null);
     } catch (err) {
       setError('Failed to save company');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -62,15 +68,12 @@ export function Dashboard() {
     setError(null);
   };
 
-  const handleJobFormSubmit = async (data: JobFormData) => {
-    if (!selectedCompany) {
-      setError('Please select a company first');
-      return;
-    }
+  const handleAnalyze = async (data: JobFormData) => {
+    if (!selectedCompany) return;
 
-    setIsAnalyzing(true);
     setError(null);
-
+    setIsAnalyzing(true);
+    
     try {
       const result = await analyzePosition(data);
       setAnalysis(result.analysis);
@@ -83,25 +86,22 @@ export function Dashboard() {
     }
   };
 
-  const handleSavePosition = async () => {
-    if (!selectedCompany || !currentFormData || !analysis) {
-      setError('Missing required data to save position');
-      return;
-    }
+  const handleSave = async () => {
+    if (!selectedCompany || !currentFormData || !analysis || !currentUser) return;
 
     setIsSaving(true);
-    setError(null);
-
     try {
-      const companyData = {
-        companyName: selectedCompany.name,
-        website: selectedCompany.website,
-        contactName: selectedCompany.contactName,
-        source: selectedCompany.source,
-        onshoreLocation: selectedCompany.onshoreLocation
-      };
-
-      await createPosition(currentFormData, analysis, companyData);
+      await createPosition(
+        currentFormData,
+        analysis,
+        {
+          companyName: selectedCompany.name,
+          website: selectedCompany.website,
+          contactName: selectedCompany.contactName,
+          source: selectedCompany.source,
+          onshoreLocation: selectedCompany.onshoreLocation
+        }
+      );
       setActiveTab('saved');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save position');
@@ -134,24 +134,19 @@ export function Dashboard() {
                   onCreateNew={() => setShowCompanyForm(true)}
                   onEdit={handleEditCompany}
                   onArchive={handleCompanyDelete}
+                  isLoading={isLoadingCompanies}
                 />
               )}
             </div>
 
             {selectedCompany && (
               <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Role Details</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">Position Details</h2>
                 <JobForm
-                  onSubmit={handleJobFormSubmit}
+                  onSubmit={handleAnalyze}
                   isLoading={isAnalyzing}
                   selectedCompany={selectedCompany}
                 />
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
-                {error}
               </div>
             )}
 
@@ -164,14 +159,14 @@ export function Dashboard() {
                 <EditableJobDescription
                   jobDescription={analysis.jobDescription}
                   onSave={(updatedDescription) => {
-                    setAnalysis({
-                      ...analysis,
+                    setAnalysis(prev => prev ? {
+                      ...prev,
                       jobDescription: updatedDescription
-                    });
+                    } : null);
                   }}
                 />
                 <RoleActions
-                  onSave={handleSavePosition}
+                  onSave={handleSave}
                   isSaving={isSaving}
                 />
               </>
@@ -184,9 +179,9 @@ export function Dashboard() {
           <SavedPositions
             positions={positions}
             onSelect={(position) => {
-              // Handle saved position selection
               console.log('Selected position:', position);
             }}
+            isLoading={isLoadingPositions}
           />
         );
 
@@ -198,13 +193,26 @@ export function Dashboard() {
     }
   };
 
-  if (isLoadingCompanies) {
-    return <LoadingOverlay message="Loading..." />;
-  }
-
   return (
     <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+          {error}
+        </div>
+      )}
       {renderContent()}
+      {isAnalyzing && (
+        <LoadingOverlay 
+          message="Analyzing position..." 
+          isTransparent
+        />
+      )}
+      {isSaving && (
+        <LoadingOverlay 
+          message="Saving..." 
+          isTransparent
+        />
+      )}
     </DashboardLayout>
   );
 }

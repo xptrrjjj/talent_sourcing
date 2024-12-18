@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Building2, Search, MapPin, Edit2, Archive, MoreVertical } from 'lucide-react';
 import type { Company } from '../../types';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface Props {
   companies: Company[];
@@ -9,6 +10,7 @@ interface Props {
   onCreateNew: () => void;
   onEdit: (company: Company) => void;
   onArchive: (company: Company) => void;
+  isLoading?: boolean;
 }
 
 export function CompanySelector({ 
@@ -17,7 +19,8 @@ export function CompanySelector({
   onSelect, 
   onCreateNew,
   onEdit,
-  onArchive 
+  onArchive,
+  isLoading 
 }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showActionsFor, setShowActionsFor] = useState<string | null>(null);
@@ -31,6 +34,14 @@ export function CompanySelector({
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.contactName.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

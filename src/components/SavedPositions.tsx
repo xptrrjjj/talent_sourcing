@@ -3,13 +3,15 @@ import type { SavedPosition } from '../types';
 import { SavedPositionsFilters } from './saved-positions/SavedPositionsFilters';
 import { SavedPositionsGrouped } from './saved-positions/SavedPositionsGrouped';
 import { useUserContext } from '../contexts/UserContext';
+import { LoadingSpinner } from './ui/LoadingSpinner';
 
 interface Props {
   positions: SavedPosition[];
   onSelect: (position: SavedPosition) => void;
+  isLoading?: boolean;
 }
 
-export function SavedPositions({ positions, onSelect }: Props) {
+export function SavedPositions({ positions, onSelect, isLoading }: Props) {
   const { currentUser } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'active' | 'archived'>('all');
@@ -22,6 +24,14 @@ export function SavedPositions({ positions, onSelect }: Props) {
       .filter(p => p && p.companyData && p.companyData.companyName)
       .map(p => p.companyData.companyName)
   ));
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   // Filter positions
   const filteredPositions = positions.filter(position => {

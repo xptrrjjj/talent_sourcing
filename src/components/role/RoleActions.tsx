@@ -1,5 +1,6 @@
 import React from 'react';
 import { Save, Loader } from 'lucide-react';
+import { LoadingButton } from '../ui/LoadingButton';
 
 interface Props {
   onSave: () => void;
@@ -9,24 +10,14 @@ interface Props {
 export function RoleActions({ onSave, isSaving }: Props) {
   return (
     <div className="flex justify-end space-x-4 mt-8">
-      <button
-        type="button"
+      <LoadingButton
         onClick={onSave}
-        disabled={isSaving}
-        className="inline-flex items-center px-4 py-2 border border-magentiq text-sm font-medium rounded-md text-magentiq bg-white hover:bg-magentiq/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-magentiq disabled:opacity-50"
+        isLoading={isSaving}
+        loadingText="Saving..."
+        variant="primary"
       >
-        {isSaving ? (
-          <>
-            <Loader className="w-4 h-4 mr-2 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            <Save className="w-4 h-4 mr-2" />
-            Save Role
-          </>
-        )}
-      </button>
+        Save Role
+      </LoadingButton>
     </div>
   );
 }
