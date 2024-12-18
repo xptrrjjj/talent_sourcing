@@ -1,6 +1,7 @@
 import type { SavedPosition } from '../../../types';
-import { createRecord, retrieveRecords, appendToRecord } from '../../api/datastore';
+import { createRecord, retrieveRecords } from '../../api/datastore';
 import { APIError } from '../../errors';
+import { validatePositionRecord, mapPositionRecord, validatePositionData } from './validation';
 
 export async function getSavedPositions(): Promise<SavedPosition[]> {
   try {
@@ -11,11 +12,8 @@ export async function getSavedPositions(): Promise<SavedPosition[]> {
     }
 
     return response
-      .filter(record => record.data && !record.data.deleted)
-      .map(record => ({
-        ...record.data,
-        id: record.record_id
-      }));
+      .filter(validatePositionRecord)
+      .map(mapPositionRecord);
   } catch (error) {
     console.error('Failed to fetch positions:', error);
     return [];
@@ -24,6 +22,10 @@ export async function getSavedPositions(): Promise<SavedPosition[]> {
 
 export async function savePosition(position: SavedPosition): Promise<void> {
   try {
+    if (!validatePositionData(position)) {
+      throw new APIError('Invalid position data');
+    }
+
     await createRecord(position.id, {
       type: 'position',
       data: {
@@ -33,36 +35,6 @@ export async function savePosition(position: SavedPosition): Promise<void> {
     });
   } catch (error) {
     console.error('Failed to save position:', error);
-    throw error;
-  }
-}
-
-export async function deletePosition(id: string): Promise<void> {
-  try {
-    await createRecord(id, {
-      type: 'position',
-      data: { deleted: true }
-    });
-  } catch (error) {
-    console.error('Failed to delete position:', error);
-    throw error;
-  }
-}
-
-export async function updatePositionStatus(
-  id: string, 
-  status: SavedPosition['status']
-): Promise<void> {
-  try {
-    await appendToRecord(id, {
-      type: 'position',
-      data: {
-        status,
-        updatedAt: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('Failed to update position status:', error);
     throw error;
   }
 }

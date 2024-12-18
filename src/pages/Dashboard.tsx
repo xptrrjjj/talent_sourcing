@@ -62,7 +62,53 @@ export function Dashboard() {
     setError(null);
   };
 
-  // Rest of the component remains the same...
+  const handleJobFormSubmit = async (data: JobFormData) => {
+    if (!selectedCompany) {
+      setError('Please select a company first');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      const result = await analyzePosition(data);
+      setAnalysis(result.analysis);
+      setRawGeminiAnalysis(result.rawGeminiAnalysis);
+      setCurrentFormData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSavePosition = async () => {
+    if (!selectedCompany || !currentFormData || !analysis) {
+      setError('Missing required data to save position');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const companyData = {
+        companyName: selectedCompany.name,
+        website: selectedCompany.website,
+        contactName: selectedCompany.contactName,
+        source: selectedCompany.source,
+        onshoreLocation: selectedCompany.onshoreLocation
+      };
+
+      await createPosition(currentFormData, analysis, companyData);
+      setActiveTab('saved');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save position');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -92,13 +138,69 @@ export function Dashboard() {
               )}
             </div>
 
-            {/* Rest of the render content remains the same... */}
+            {selectedCompany && (
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">Role Details</h2>
+                <JobForm
+                  onSubmit={handleJobFormSubmit}
+                  isLoading={isAnalyzing}
+                  selectedCompany={selectedCompany}
+                />
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+                {error}
+              </div>
+            )}
+
+            {analysis && currentFormData && (
+              <>
+                <AnalysisResult
+                  analysis={analysis}
+                  rawGeminiAnalysis={rawGeminiAnalysis}
+                />
+                <EditableJobDescription
+                  jobDescription={analysis.jobDescription}
+                  onSave={(updatedDescription) => {
+                    setAnalysis({
+                      ...analysis,
+                      jobDescription: updatedDescription
+                    });
+                  }}
+                />
+                <RoleActions
+                  onSave={handleSavePosition}
+                  isSaving={isSaving}
+                />
+              </>
+            )}
           </div>
         );
 
-      // Other cases remain the same...
+      case 'saved':
+        return (
+          <SavedPositions
+            positions={positions}
+            onSelect={(position) => {
+              // Handle saved position selection
+              console.log('Selected position:', position);
+            }}
+          />
+        );
+
+      case 'pipeline':
+        return <ApplicationStages />;
+
+      default:
+        return null;
     }
   };
+
+  if (isLoadingCompanies) {
+    return <LoadingOverlay message="Loading..." />;
+  }
 
   return (
     <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>

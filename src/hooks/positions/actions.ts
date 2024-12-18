@@ -1,24 +1,12 @@
 import { nanoid } from 'nanoid';
 import type { SavedPosition, JobFormData, TalentAnalysis } from '../../types';
-import { getSavedPositions, savePosition } from '../../services/storage/positions';
+import { savePosition } from '../../services/storage/positions/operations';
 import { useUserContext } from '../../contexts/UserContext';
 import type { UsePositionsState } from './types';
 
 export function usePositionsActions(state: UsePositionsState) {
   const { currentUser } = useUserContext();
   const { setPositions, setIsLoading, setError } = state;
-
-  const fetchPositions = async () => {
-    try {
-      const fetchedPositions = await getSavedPositions();
-      setPositions(fetchedPositions.filter(p => p && p.companyData && p.formData));
-    } catch (err) {
-      console.error('Error fetching positions:', err);
-      setError('Failed to load positions');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const createPosition = async (
     formData: JobFormData,
@@ -31,12 +19,17 @@ export function usePositionsActions(state: UsePositionsState) {
     setError(null);
     
     try {
+      // Ensure we have valid user data
+      if (!currentUser.id || !currentUser.name) {
+        throw new Error('Invalid user data');
+      }
+
       const newPosition: SavedPosition = {
         id: nanoid(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         userId: currentUser.id,
-        userName: currentUser.name,
+        userName: currentUser.name || 'Unknown User', // Fallback name if missing
         status: 'draft',
         companyData,
         formData: {
@@ -47,9 +40,13 @@ export function usePositionsActions(state: UsePositionsState) {
       };
       
       await savePosition(newPosition);
-      await fetchPositions();
+      
+      // Update local state
+      setPositions(prev => [...prev, newPosition]);
+      
       return newPosition;
     } catch (err) {
+      console.error('Failed to create position:', err);
       setError('Failed to save position');
       throw err;
     } finally {
@@ -58,7 +55,6 @@ export function usePositionsActions(state: UsePositionsState) {
   };
 
   return {
-    fetchPositions,
     createPosition
   };
 }

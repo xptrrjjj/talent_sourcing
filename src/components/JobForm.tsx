@@ -10,7 +10,7 @@ import { EXPERIENCE_LEVELS, EDUCATION_LEVELS, EMPLOYMENT_TYPES } from './form/co
 interface Props {
   onSubmit: (data: JobFormData) => void;
   isLoading: boolean;
-  selectedCompany: Company | null;
+  selectedCompany: Company;
 }
 
 export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
@@ -21,9 +21,10 @@ export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
   const { register, handleSubmit, watch, setValue, reset } = useForm<JobFormData>({
     defaultValues: {
       experienceLevel: 'Mid Level',
-      educationLevel: 'High School',
+      educationLevel: 'Bachelor',
       employmentType: 'Full Time',
-      onshoreLocation: selectedCompany?.onshoreLocation || ''
+      onshoreLocation: selectedCompany?.onshoreLocation || '',
+      companyId: selectedCompany?.id || ''
     }
   });
 
@@ -31,6 +32,7 @@ export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
   useEffect(() => {
     if (selectedCompany) {
       setValue('onshoreLocation', selectedCompany.onshoreLocation);
+      setValue('companyId', selectedCompany.id);
     }
   }, [selectedCompany, setValue]);
 
@@ -95,14 +97,6 @@ export function JobForm({ onSubmit, isLoading, selectedCompany }: Props) {
       console.error('Form submission error:', err);
     }
   };
-
-  if (!selectedCompany) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        Please select a company first to create a new position.
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
