@@ -1,5 +1,4 @@
-// redirect-http.js
-const http = require('http');
+import http from 'http';
 
 const host = 'localhost';
 const port = 80;
