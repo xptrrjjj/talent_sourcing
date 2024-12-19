@@ -1,11 +1,11 @@
 import React from 'react';
-import { FileText, Users, PlusCircle } from 'lucide-react';
+import { FileText, PlusCircle } from 'lucide-react';
 import clsx from 'clsx';
 import Icon from './Icon.png';
 
 interface Props {
-  activeTab: 'create' | 'saved' | 'pipeline';
-  onTabChange: (tab: 'create' | 'saved' | 'pipeline') => void;
+  activeTab: 'create' | 'saved';
+  onTabChange: (tab: 'create' | 'saved') => void;
   children: React.ReactNode;
 }
 
@@ -13,7 +13,6 @@ export function DashboardLayout({ activeTab, onTabChange, children }: Props) {
   const tabs = [
     { id: 'create', label: 'Create Role', icon: PlusCircle },
     { id: 'saved', label: 'Saved Roles', icon: FileText },
-    { id: 'pipeline', label: 'Pipeline', icon: Users },
   ] as const;
 
   return (
