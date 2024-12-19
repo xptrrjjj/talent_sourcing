@@ -1,4 +1,5 @@
-import http from 'http';
+// redirect-http.cjs
+const http = require('http');
 
 const host = 'localhost';
 const port = 80;
