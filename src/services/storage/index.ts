@@ -1,6 +1,7 @@
 export {
   getCompanies,
   saveCompany,
+  deleteCompany,
 } from './companies';
 
 export {

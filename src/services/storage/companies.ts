@@ -53,3 +53,18 @@ export async function saveCompany(company: Company): Promise<void> {
     throw error;
   }
 }
+
+export async function deleteCompany(id: string): Promise<void> {
+  try {
+    await createRecord(id, {
+      type: 'company',
+      data: {
+        deleted: true,
+        deletedAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Failed to delete company:', error);
+    throw error;
+  }
+}
