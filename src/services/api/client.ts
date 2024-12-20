@@ -177,7 +177,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import { AUTH_STORAGE_KEYS } from '../../config/auth';
 import { getMsalInstance } from '../msal';
 
-const BASE_URL = 'https://44.211.135.244:8000';
+const BASE_URL = 'https://framework.2bv.io';
 
 // Track token refresh attempts to prevent infinite loops
 let isRefreshing = false;

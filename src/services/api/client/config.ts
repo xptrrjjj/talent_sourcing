@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  baseURL: 'https://44.211.135.244:8000',
+  baseURL: 'https://framework.2bv.io',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
