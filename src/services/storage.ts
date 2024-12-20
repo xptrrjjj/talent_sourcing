@@ -77,17 +77,36 @@ export async function saveCompany(company: Company): Promise<void> {
   }
 }
 
-export async function deleteCompany(id: string): Promise<void> {
+export async function deleteCompany(id: string | undefined): Promise<void> {
+  // Handle case where an object is mistakenly passed instead of an id
+  if (id && typeof id === 'object' && 'id' in id) {
+    console.error('Object passed instead of ID. Extracting the ID field.');
+    id = id['id']; // Attempt to extract `id` field if object is passed
+  }
+
+  // Validate id
+  if (!id || typeof id !== 'string') {
+    console.error('Invalid id passed to deleteCompany:', id);
+    throw new Error('Invalid id: Expected a string');
+  }
+
   try {
+    console.log('Deleting company with id:', id);
+
     await createRecord(id, {
       type: 'company',
-      data: { deleted: true }
+      data: {
+        deleted: true,
+        deletedAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error('Failed to delete company:', error);
     throw error;
   }
 }
+
+
 
 export async function updateCompanyDetails(id: string, updates: Partial<Company>): Promise<void> {
   try {

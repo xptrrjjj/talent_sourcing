@@ -34,16 +34,16 @@ export default defineConfig({
   },
   server: {
     open: true, // Automatically open the app in the browser during dev
-    port: 443, // Specify a custom port for dev server
-    host: '0.0.0.0', // Allow access from external devices
-    https: {
-      key: fs.readFileSync('/etc/letsencrypt/live/recruiter.2bv.io/privkey.pem'),
-      cert: fs.readFileSync('/etc/letsencrypt/live/recruiter.2bv.io/fullchain.pem'),
-    },
-    headers: {
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains', // Forces HTTPS
-    },
-    // port: 5173, // Specify a custom port for dev server
-    // host: 'localhost', // Allow access from external devices
+    // port: 443, // Specify a custom port for dev server
+    // host: '0.0.0.0', // Allow access from external devices
+    // https: {
+    //   key: fs.readFileSync('/etc/letsencrypt/live/recruiter.2bv.io/privkey.pem'),
+    //   cert: fs.readFileSync('/etc/letsencrypt/live/recruiter.2bv.io/fullchain.pem'),
+    // },
+    // headers: {
+    //   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains', // Forces HTTPS
+    // },
+    port: 5173, // Specify a custom port for dev server
+    host: 'localhost', // Allow access from external devices
   },
 });

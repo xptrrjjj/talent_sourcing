@@ -56,12 +56,20 @@ export async function saveCompany(company: Company): Promise<void> {
 
 export async function deleteCompany(id: string): Promise<void> {
   try {
+    // Ensure `id` is a string
+    if (typeof id !== 'string') {
+      throw new Error('Invalid id: Expected a string.');
+    }
+
+    // Log payload for debugging
+    console.log('Deleting company with id:', id);
+
     await createRecord(id, {
       type: 'company',
       data: {
         deleted: true,
-        deletedAt: new Date().toISOString()
-      }
+        deletedAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error('Failed to delete company:', error);

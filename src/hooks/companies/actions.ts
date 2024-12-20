@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { nanoid } from 'nanoid';
 import type { Company, CompanyFormData } from '../../types';
-import { getCompanies, saveCompany } from '../../services/storage';
+import { getCompanies, saveCompany, deleteCompany } from '../../services/storage';
 import type { UseCompaniesState } from './types';
 
 export function useCompaniesActions(state: UseCompaniesState) {
@@ -56,7 +56,9 @@ export function useCompaniesActions(state: UseCompaniesState) {
 
   const handleCompanyDelete = useCallback(async (id: string) => {
     try {
+      console.log("This gets triggered bro")
       await deleteCompany(id);
+
       await fetchCompanies();
       setSelectedCompany(null);
     } catch (err) {
