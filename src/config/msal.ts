@@ -6,27 +6,30 @@ export const msalConfig: Configuration = {
     authority: `https://login.microsoftonline.com/${import.meta.env.VITE_MICROSOFT_TENANT_ID || 'common'}`,
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
-    navigateToLoginRequestUrl: false // Disable navigation for popup flow
+    navigateToLoginRequestUrl: false, // Prevent navigation to the original request URL to avoid hash clearing in Safari
   },
   cache: {
-    cacheLocation: 'sessionStorage',
-    storeAuthStateInCookie: false,
+    cacheLocation: 'localStorage', // Use localStorage for better persistence and Safari compatibility
+    storeAuthStateInCookie: true, // Ensure compatibility with Safari and strict cookie policies
   },
   system: {
     allowNativeBroker: false,
     windowHashTimeout: 60000,
     iframeHashTimeout: 6000,
     loadFrameTimeout: 0,
-    popupWindowAttributes: {
-      width: 483,
-      height: 600,
-      top: window.screenY + (window.outerHeight - 600) / 2,
-      left: window.screenX + (window.outerWidth - 483) / 2,
-    }
-  }
+    loggerOptions: {
+      loggerCallback: (level, message, containsPii) => {
+        if (!containsPii) {
+          console.log(`[MSAL] ${message}`);
+        }
+      },
+      logLevel: 3, // Verbose logging for debugging issues
+      piiLoggingEnabled: false,
+    },
+  },
 };
 
 export const msalRequest: PopupRequest = {
-  scopes: ['User.Read', 'profile', 'email', 'openid'],
-  prompt: 'select_account'
+  scopes: ['User.Read', 'profile', 'email', 'openid'], // Ensure these scopes align with the app registration
+  prompt: 'select_account', // Prompt the user to select an account
 };

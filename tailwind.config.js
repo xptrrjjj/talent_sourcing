@@ -1,4 +1,7 @@
 /** @type {import('tailwindcss').Config} */
+import forms from '@tailwindcss/forms';
+import typography from '@tailwindcss/typography';
+
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
@@ -7,7 +10,7 @@ export default {
         magentiq: {
           blue: 'rgb(51, 136, 255)',
           DEFAULT: 'rgb(51, 136, 255)',
-        }
+        },
       },
       animation: {
         'spin-slow': 'spin 3s linear infinite',
@@ -18,7 +21,7 @@ export default {
     },
   },
   plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
+    forms,
+    typography,
   ],
 };
