@@ -6,11 +6,11 @@ export const msalConfig: Configuration = {
     authority: `https://login.microsoftonline.com/${import.meta.env.VITE_MICROSOFT_TENANT_ID || 'common'}`,
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
-    navigateToLoginRequestUrl: false, // Prevent navigation to the original request URL to avoid hash clearing in Safari
+    navigateToLoginRequestUrl: false,
   },
   cache: {
-    cacheLocation: 'localStorage', // Use localStorage for better persistence and Safari compatibility
-    storeAuthStateInCookie: true, // Ensure compatibility with Safari and strict cookie policies
+    cacheLocation: 'localStorage',
+    storeAuthStateInCookie: true,
   },
   system: {
     allowNativeBroker: false,
@@ -23,13 +23,16 @@ export const msalConfig: Configuration = {
           console.log(`[MSAL] ${message}`);
         }
       },
-      logLevel: 3, // Verbose logging for debugging issues
+      logLevel: 3,
       piiLoggingEnabled: false,
     },
   },
 };
 
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 export const msalRequest: PopupRequest = {
-  scopes: ['User.Read', 'profile', 'email', 'openid'], // Ensure these scopes align with the app registration
-  prompt: 'select_account', // Prompt the user to select an account
-};
+  scopes: ['User.Read', 'profile', 'email', 'openid'],
+  prompt: 'select_account',
+  responseMode: isSafari ? 'query' : 'fragment', // Use query mode for Safari
+} as PopupRequest;
