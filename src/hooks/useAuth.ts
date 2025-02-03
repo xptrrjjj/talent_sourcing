@@ -16,7 +16,30 @@ export function useAuth() {
   const loginWithMicrosoft = async () => {
     try {
       setIsLoading(true);
-      const response = await msalInstance.loginPopup(msalRequest);
+      // First try silent token acquisition
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        try {
+          const tokenResponse = await msalInstance.acquireTokenSilent({
+            scopes: msalRequest.scopes,
+            account: accounts[0]
+          });
+          
+          if (tokenResponse.accessToken) {
+            const user = await validateMicrosoftUser(tokenResponse.accessToken);
+            navigate(AUTH_ROUTES.HOME, { replace: true });
+            return user;
+          }
+        } catch (silentError) {
+          console.log("Silent token acquisition failed, falling back to popup", silentError);
+        }
+      }
+
+      // If silent token acquisition fails, fall back to popup
+      const response = await msalInstance.loginPopup({
+        ...msalRequest,
+        scopes: msalRequest.scopes
+      });
       
       if (!response?.account) {
         throw new Error('Microsoft login failed');
