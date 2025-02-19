@@ -11,8 +11,8 @@ export const msalConfig: Configuration = {
     navigateToLoginRequestUrl: true,
   },
   cache: {
-    cacheLocation: 'localStorage',
-    storeAuthStateInCookie: true,
+    cacheLocation: 'sessionStorage',
+    storeAuthStateInCookie: isSafari,
   },
   system: {
     allowNativeBroker: false,
@@ -32,6 +32,7 @@ export const msalConfig: Configuration = {
 };
 
 export const msalRequest: PopupRequest = {
-  scopes: [...['User.Read', 'profile', 'email', 'openid']],
-  prompt: 'select_account'
+  scopes: ['User.Read', 'profile', 'email', 'openid'],
+  prompt: 'select_account',
+  redirectUri: window.location.origin
 };

@@ -9,7 +9,7 @@ export const AUTH_ROUTES = {
   HOME: '/',
 } as const;
 
-export const AUTH_SCOPES = ['User.Read', 'profile', 'email', 'openid'] as const;
+export const AUTH_SCOPES = ['User.Read', 'profile', 'email', 'openid'];
 
 export const AUTH_ERRORS = {
   POPUP_BLOCKED: 'Popup was blocked by the browser',
